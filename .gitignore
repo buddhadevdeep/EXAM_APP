@@ -1,0 +1,16 @@
+node_modules
+.env
+
+/server/node_modules
+/frontend/node_modules
+/server/.env
+/frontend/.env
+# Server
+node_modules/
+.env
+*.db
+
+# Frontend
+node_modules/
+.env
+*.db
