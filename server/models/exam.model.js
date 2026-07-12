@@ -1,342 +1,333 @@
-const { poolPromise, mssql } = require('../config/db');
+const {
+  Question: MongoQuestion,
+  QuestionBank: MongoQuestionBank,
+  Category: MongoCategory,
+  Subject: MongoSubject,
+  Exam: MongoExam,
+  ExamQuestion: MongoExamQuestion,
+  Submission: MongoSubmission,
+  SubmissionAnswer: MongoSubmissionAnswer,
+  Mark: MongoMark,
+  Feedback: MongoFeedback,
+  Teacher: MongoTeacher,
+  Student: MongoStudent,
+  getNextSequenceValue
+} = require('./mongoose.model');
 
 class Question {
   static async getAll() {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request().query(`
-      SELECT q.*, qb.name as question_bank_name, c.name as category_name, s.name as subject_name 
-      FROM questions q
-      JOIN question_banks qb ON q.question_bank_id = qb.id
-      JOIN categories c ON q.category_id = c.id
-      JOIN subjects s ON q.subject_id = s.id
-    `);
-    return result.recordset;
+    const questions = await MongoQuestion.find().lean();
+    const questionBanks = await MongoQuestionBank.find().lean();
+    const categories = await MongoCategory.find().lean();
+    const subjects = await MongoSubject.find().lean();
+     
+    const qbMap = new Map(questionBanks.map(b => [b._id, b.name]));
+    const catMap = new Map(categories.map(c => [c._id, c.name]));
+    const subMap = new Map(subjects.map(s => [s._id, s.name]));
+
+    return questions.map(q => ({
+      ...q,
+      id: q._id,
+      question_bank_name: qbMap.get(q.question_bank_id) || '',
+      category_name: catMap.get(q.category_id) || '',
+      subject_name: subMap.get(q.subject_id) || ''
+    }));
   }
 
   static async create({ questionBankId, categoryId, subjectId, title, description, points, sqlTemplate }) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('questionBankId', mssql.Int, questionBankId)
-      .input('categoryId', mssql.Int, categoryId)
-      .input('subjectId', mssql.Int, subjectId)
-      .input('title', mssql.NVarChar, title)
-      .input('description', mssql.NVarChar, description)
-      .input('points', mssql.Int, points)
-      .input('sqlTemplate', mssql.NVarChar, sqlTemplate)
-      .query(`
-        INSERT INTO questions (question_bank_id, category_id, subject_id, title, description, points, sql_template) 
-        OUTPUT INSERTED.id
-        VALUES (@questionBankId, @categoryId, @subjectId, @title, @description, @points, @sqlTemplate)
-      `);
-    return result.recordset[0].id;
+    const nextId = await getNextSequenceValue('questions');
+    const q = await MongoQuestion.create({
+      _id: nextId,
+      question_bank_id: questionBankId,
+      category_id: categoryId,
+      subject_id: subjectId,
+      title,
+      description,
+      points,
+      sql_template: sqlTemplate
+    });
+    return q._id;
   }
 }
 
 class Exam {
   static async create({ teacherId, subjectId, title, description, totalMarks, durationMinutes, accessCode = null, startTime = null, endTime = null }) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('teacherId', mssql.Int, teacherId)
-      .input('subjectId', mssql.Int, subjectId)
-      .input('title', mssql.NVarChar, title)
-      .input('description', mssql.NVarChar, description)
-      .input('totalMarks', mssql.Int, totalMarks)
-      .input('durationMinutes', mssql.Int, durationMinutes)
-      .input('accessCode', mssql.NVarChar, accessCode)
-      .input('startTime', mssql.DateTime, startTime)
-      .input('endTime', mssql.DateTime, endTime)
-      .query(`
-        INSERT INTO exams (teacher_id, subject_id, title, description, total_marks, duration_minutes, access_code, start_time, end_time) 
-        OUTPUT INSERTED.id
-        VALUES (@teacherId, @subjectId, @title, @description, @totalMarks, @durationMinutes, @accessCode, @startTime, @endTime)
-      `);
-    return result.recordset[0].id;
+    const nextId = await getNextSequenceValue('exams');
+    const exam = await MongoExam.create({
+      _id: nextId,
+      teacher_id: teacherId,
+      subject_id: subjectId,
+      title,
+      description,
+      total_marks: totalMarks,
+      duration_minutes: durationMinutes,
+      access_code: accessCode,
+      start_time: startTime ? new Date(startTime) : null,
+      end_time: endTime ? new Date(endTime) : null
+    });
+    return exam._id;
   }
 
   static async addQuestions(examId, questionIds) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    // Insert individually or in block
     for (const [idx, qId] of questionIds.entries()) {
-      await pool.request()
-        .input('examId', mssql.Int, examId)
-        .input('questionId', mssql.Int, qId)
-        .input('orderIndex', mssql.Int, idx)
-        .query('INSERT INTO exam_questions (exam_id, question_id, order_index) VALUES (@examId, @questionId, @orderIndex)');
+      const nextEqId = await getNextSequenceValue('exam_questions');
+      await MongoExamQuestion.create({
+        _id: nextEqId,
+        exam_id: examId,
+        question_id: qId,
+        order_index: idx
+      });
     }
   }
 
   static async getExamQuestions(examId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query(`
-        SELECT q.*, eq.order_index 
-        FROM exam_questions eq
-        JOIN questions q ON eq.question_id = q.id
-        WHERE eq.exam_id = @examId
-        ORDER BY eq.order_index ASC
-      `);
-    return result.recordset;
+    const examQuestions = await MongoExamQuestion.find({ exam_id: examId }).sort({ order_index: 1 }).lean();
+    const questionIds = examQuestions.map(eq => eq.question_id);
+    const questions = await MongoQuestion.find({ _id: { $in: questionIds } }).lean();
+    const questionMap = new Map(questions.map(q => [q._id, q]));
+
+    return examQuestions.map(eq => {
+      const q = questionMap.get(eq.question_id) || {};
+      return {
+        ...q,
+        id: q._id,
+        order_index: eq.order_index
+      };
+    });
   }
 
   static async getAll() {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request().query(`
-      SELECT e.*, t.full_name as teacher_name, s.name as subject_name 
-      FROM exams e
-      JOIN teachers t ON e.teacher_id = t.id
-      JOIN subjects s ON e.subject_id = s.id
-      ORDER BY e.created_at DESC
-    `);
-    return result.recordset;
+    const exams = await MongoExam.find().sort({ created_at: -1 }).lean();
+    const teachers = await MongoTeacher.find().lean();
+    const subjects = await MongoSubject.find().lean();
+
+    const teacherMap = new Map(teachers.map(t => [t._id, t.full_name]));
+    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
+
+    return exams.map(e => ({
+      ...e,
+      id: e._id,
+      teacher_name: teacherMap.get(e.teacher_id) || '',
+      subject_name: subjectMap.get(e.subject_id) || ''
+    }));
   }
 
   static async getById(id) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('id', mssql.Int, id)
-      .query(`
-        SELECT e.*, t.full_name as teacher_name, s.name as subject_name 
-        FROM exams e
-        JOIN teachers t ON e.teacher_id = t.id
-        JOIN subjects s ON e.subject_id = s.id
-        WHERE e.id = @id
-      `);
-    return result.recordset[0];
+    const exam = await MongoExam.findById(id).lean();
+    if (!exam) return null;
+    const teacher = await MongoTeacher.findById(exam.teacher_id).lean();
+    const subject = await MongoSubject.findById(exam.subject_id).lean();
+    return {
+      ...exam,
+      id: exam._id,
+      teacher_name: teacher ? teacher.full_name : '',
+      subject_name: subject ? subject.name : ''
+    };
   }
 
   static async update(id, updates) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const keys = Object.keys(updates);
-    if (keys.length === 0) return;
-
-    const request = pool.request();
-    request.input('id', mssql.Int, id);
-
-    const setClause = keys.map((k, idx) => {
-      let val = updates[k];
-      if (k === 'start_time' || k === 'end_time') {
-        request.input(`val_${idx}`, mssql.DateTime, val ? new Date(val) : null);
-      } else if (k === 'subject_id' || k === 'total_marks' || k === 'duration_minutes' || k === 'is_published' || k === 'is_closed') {
-        request.input(`val_${idx}`, mssql.Int, val !== null ? parseInt(val) : null);
-      } else {
-        request.input(`val_${idx}`, mssql.NVarChar, val);
+    const updateObj = {};
+    const fields = ['subject_id', 'title', 'description', 'total_marks', 'duration_minutes', 'is_published', 'is_closed', 'access_code', 'start_time', 'end_time'];
+    fields.forEach(f => {
+      if (updates[f] !== undefined) {
+        if ((f === 'start_time' || f === 'end_time')) {
+          updateObj[f] = updates[f] ? new Date(updates[f]) : null;
+        } else if (f === 'subject_id' || f === 'total_marks' || f === 'duration_minutes' || f === 'is_published' || f === 'is_closed') {
+          updateObj[f] = updates[f] !== null ? parseInt(updates[f]) : null;
+        } else {
+          updateObj[f] = updates[f];
+        }
       }
-      return `[${k}] = @val_${idx}`;
-    }).join(', ');
-
-    await request.query(`UPDATE exams SET ${setClause} WHERE id = @id`);
+    });
+    if (Object.keys(updateObj).length > 0) {
+      await MongoExam.findByIdAndUpdate(id, { $set: updateObj });
+    }
   }
 }
 
 class Submission {
   static async createDraftOrGet(studentId, examId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    
-    // Check if exists
-    const existing = await pool.request()
-      .input('studentId', mssql.Int, studentId)
-      .input('examId', mssql.Int, examId)
-      .query('SELECT * FROM submissions WHERE student_id = @studentId AND exam_id = @examId');
-
-    if (existing.recordset.length > 0) {
-      return existing.recordset[0];
+    let submission = await MongoSubmission.findOne({ student_id: studentId, exam_id: examId }).lean();
+    if (submission) {
+      return {
+        ...submission,
+        id: submission._id
+      };
     }
-
-    const result = await pool.request()
-      .input('studentId', mssql.Int, studentId)
-      .input('examId', mssql.Int, examId)
-      .query(`
-        INSERT INTO submissions (student_id, exam_id, status) 
-        OUTPUT INSERTED.id, INSERTED.student_id, INSERTED.exam_id, INSERTED.status
-        VALUES (@studentId, @examId, 'Draft')
-      `);
-    return result.recordset[0];
+    const nextId = await getNextSequenceValue('submissions');
+    const subDoc = await MongoSubmission.create({
+      _id: nextId,
+      student_id: studentId,
+      exam_id: examId,
+      status: 'Draft'
+    });
+    return {
+      ...subDoc.toObject(),
+      id: subDoc._id
+    };
   }
 
   static async saveAnswer(submissionId, questionId, sqlQuery) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    
-    // Check if answers already exists
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .input('questionId', mssql.Int, questionId)
-      .query('SELECT 1 FROM submission_answers WHERE submission_id = @submissionId AND question_id = @questionId');
-
-    if (check.recordset.length > 0) {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('questionId', mssql.Int, questionId)
-        .input('sqlQuery', mssql.NVarChar, sqlQuery)
-        .query(`
-          UPDATE submission_answers 
-          SET sql_query = @sqlQuery, submitted_at = GETDATE()
-          WHERE submission_id = @submissionId AND question_id = @questionId
-        `);
+    let answer = await MongoSubmissionAnswer.findOne({ submission_id: submissionId, question_id: questionId });
+    if (answer) {
+      answer.sql_query = sqlQuery;
+      answer.submitted_at = Date.now();
+      await answer.save();
     } else {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('questionId', mssql.Int, questionId)
-        .input('sqlQuery', mssql.NVarChar, sqlQuery)
-        .query(`
-          INSERT INTO submission_answers (submission_id, question_id, sql_query) 
-          VALUES (@submissionId, @questionId, @sqlQuery)
-        `);
+      const nextId = await getNextSequenceValue('submission_answers');
+      await MongoSubmissionAnswer.create({
+        _id: nextId,
+        submission_id: submissionId,
+        question_id: questionId,
+        sql_query: sqlQuery
+      });
     }
   }
 
   static async getAnswers(submissionId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT * FROM submission_answers WHERE submission_id = @submissionId');
-    return result.recordset;
+    const answers = await MongoSubmissionAnswer.find({ submission_id: submissionId }).lean();
+    return answers.map(a => ({
+      ...a,
+      id: a._id
+    }));
   }
 
   static async submitExam(submissionId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query("UPDATE submissions SET status = 'Submitted', submitted_at = GETDATE() WHERE id = @submissionId");
+    await MongoSubmission.findByIdAndUpdate(submissionId, {
+      $set: { status: 'Submitted', submitted_at: Date.now() }
+    });
   }
 
   static async getSubmissionsForExam(examId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query(`
-        SELECT sub.*, s.full_name as student_name, s.roll_number, s.class_section
-        FROM submissions sub
-        JOIN students s ON sub.student_id = s.id
-        WHERE sub.exam_id = @examId
-      `);
-    return result.recordset;
+    const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
+    const studentIds = submissions.map(sub => sub.student_id);
+    const students = await MongoStudent.find({ _id: { $in: studentIds } }).lean();
+    const studentMap = new Map(students.map(s => [s._id, s]));
+
+    return submissions.map(sub => {
+      const s = studentMap.get(sub.student_id) || {};
+      return {
+        ...sub,
+        id: sub._id,
+        student_name: s.full_name || '',
+        roll_number: s.roll_number || '',
+        class_section: s.class_section || ''
+      };
+    });
   }
 
   static async getSubmissionsForStudent(studentId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('studentId', mssql.Int, studentId)
-      .query(`
-        SELECT sub.*, e.title as exam_title, e.total_marks, e.duration_minutes, s.name as subject_name,
-               (SELECT SUM(marks_obtained) FROM marks WHERE submission_id = sub.id) as marks_obtained,
-               (SELECT comments FROM feedback WHERE submission_id = sub.id) as teacher_comments
-        FROM submissions sub
-        JOIN exams e ON sub.exam_id = e.id
-        JOIN subjects s ON e.subject_id = s.id
-        WHERE sub.student_id = @studentId AND e.is_closed = 0
-      `);
-    return result.recordset;
+    const submissions = await MongoSubmission.find({ student_id: studentId }).lean();
+    const examIds = submissions.map(sub => sub.exam_id);
+    
+    const exams = await MongoExam.find({ _id: { $in: examIds }, is_closed: 0 }).lean();
+    const examMap = new Map(exams.map(e => [e._id, e]));
+
+    const subjectIds = exams.map(e => e.subject_id);
+    const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
+    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
+
+    const submissionIds = submissions.map(sub => sub._id);
+    const marks = await MongoMark.find({ submission_id: { $in: submissionIds } }).lean();
+    const feedbackDocs = await MongoFeedback.find({ submission_id: { $in: submissionIds } }).lean();
+
+    const marksSumMap = new Map();
+    marks.forEach(m => {
+      const current = marksSumMap.get(m.submission_id) || 0;
+      marksSumMap.set(m.submission_id, current + m.marks_obtained);
+    });
+
+    const feedbackMap = new Map(feedbackDocs.map(f => [f.submission_id, f.comments]));
+    const activeSubmissions = submissions.filter(sub => examMap.has(sub.exam_id));
+
+    return activeSubmissions.map(sub => {
+      const e = examMap.get(sub.exam_id);
+      const subName = e ? subjectMap.get(e.subject_id) : '';
+      return {
+        ...sub,
+        id: sub._id,
+        exam_title: e ? e.title : '',
+        total_marks: e ? e.total_marks : 0,
+        duration_minutes: e ? e.duration_minutes : 0,
+        subject_name: subName,
+        marks_obtained: marksSumMap.get(sub._id) || 0,
+        teacher_comments: feedbackMap.get(sub._id) || null
+      };
+    });
   }
 
   static async getSubmissionDetails(submissionId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query(`
-        SELECT sub.*, s.full_name as student_name, s.roll_number, s.class_section, e.title as exam_title, e.total_marks
-        FROM submissions sub
-        JOIN students s ON sub.student_id = s.id
-        JOIN exams e ON sub.exam_id = e.id
-        WHERE sub.id = @submissionId
-      `);
-    return result.recordset[0];
+    const submission = await MongoSubmission.findById(submissionId).lean();
+    if (!submission) return null;
+    const student = await MongoStudent.findById(submission.student_id).lean();
+    const exam = await MongoExam.findById(submission.exam_id).lean();
+
+    return {
+      ...submission,
+      id: submission._id,
+      student_name: student ? student.full_name : '',
+      roll_number: student ? student.roll_number : '',
+      class_section: student ? student.class_section : '',
+      exam_title: exam ? exam.title : '',
+      total_marks: exam ? exam.total_marks : 0
+    };
   }
 }
 
 class Grade {
   static async saveMarkAndFeedback(submissionId, questionId, teacherId, marksObtained, feedbackText) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .input('questionId', mssql.Int, questionId)
-      .query('SELECT 1 FROM marks WHERE submission_id = @submissionId AND question_id = @questionId');
-
-    if (check.recordset.length > 0) {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('questionId', mssql.Int, questionId)
-        .input('marksObtained', mssql.Decimal(5, 2), marksObtained)
-        .input('feedback', mssql.NVarChar, feedbackText)
-        .query(`
-          UPDATE marks 
-          SET marks_obtained = @marksObtained, feedback = @feedback, graded_at = GETDATE()
-          WHERE submission_id = @submissionId AND question_id = @questionId
-        `);
+    let mark = await MongoMark.findOne({ submission_id: submissionId, question_id: questionId });
+    if (mark) {
+      mark.marks_obtained = marksObtained;
+      mark.feedback = feedbackText;
+      mark.graded_at = Date.now();
+      await mark.save();
     } else {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('questionId', mssql.Int, questionId)
-        .input('teacherId', mssql.Int, teacherId)
-        .input('marksObtained', mssql.Decimal(5, 2), marksObtained)
-        .input('feedback', mssql.NVarChar, feedbackText)
-        .query(`
-          INSERT INTO marks (submission_id, question_id, teacher_id, marks_obtained, feedback) 
-          VALUES (@submissionId, @questionId, @teacherId, @marksObtained, @feedback)
-        `);
+      const nextId = await getNextSequenceValue('marks');
+      await MongoMark.create({
+        _id: nextId,
+        submission_id: submissionId,
+        question_id: questionId,
+        teacher_id: teacherId,
+        marks_obtained: marksObtained,
+        feedback: feedbackText
+      });
     }
   }
 
   static async getGrades(submissionId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT * FROM marks WHERE submission_id = @submissionId');
-    return result.recordset;
+    const marks = await MongoMark.find({ submission_id: submissionId }).lean();
+    return marks.map(m => ({
+      ...m,
+      id: m._id
+    }));
   }
 
   static async saveOverallFeedback(submissionId, teacherId, comments) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT 1 FROM feedback WHERE submission_id = @submissionId');
-
-    if (check.recordset.length > 0) {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('comments', mssql.NVarChar, comments)
-        .query('UPDATE feedback SET comments = @comments, created_at = GETDATE() WHERE submission_id = @submissionId');
+    let feedback = await MongoFeedback.findOne({ submission_id: submissionId });
+    if (feedback) {
+      feedback.comments = comments;
+      feedback.created_at = Date.now();
+      await feedback.save();
     } else {
-      await pool.request()
-        .input('submissionId', mssql.Int, submissionId)
-        .input('teacherId', mssql.Int, teacherId)
-        .input('comments', mssql.NVarChar, comments)
-        .query('INSERT INTO feedback (submission_id, teacher_id, comments) VALUES (@submissionId, @teacherId, @comments)');
+      const nextId = await getNextSequenceValue('feedbacks');
+      await MongoFeedback.create({
+        _id: nextId,
+        submission_id: submissionId,
+        teacher_id: teacherId,
+        comments
+      });
     }
-
-    // Update submission status to Graded
-    await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query("UPDATE submissions SET status = 'Graded' WHERE id = @submissionId");
+    await MongoSubmission.findByIdAndUpdate(submissionId, { $set: { status: 'Graded' } });
   }
 
   static async getOverallFeedback(submissionId) {
-    const pool = await poolPromise;
-    await pool.request().query('USE smart_sql_exam;');
-    const result = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT * FROM feedback WHERE submission_id = @submissionId');
-    return result.recordset[0];
+    const feedback = await MongoFeedback.findOne({ submission_id: submissionId }).lean();
+    if (!feedback) return null;
+    return {
+      ...feedback,
+      id: feedback._id
+    };
   }
 }
 

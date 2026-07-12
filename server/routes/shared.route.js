@@ -16,20 +16,11 @@ router.post('/questions', adminController.createQuestion);
 // Edit and Delete question endpoints
 router.put('/questions/:id', async (req, res, next) => {
   try {
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
+    const { Question: MongoQuestion } = require('../models/mongoose.model');
     const { title, description, points, sqlTemplate } = req.body;
-    await pool.request()
-      .input('id', mssql.Int, req.params.id)
-      .input('title', mssql.NVarChar, title)
-      .input('description', mssql.NVarChar, description)
-      .input('points', mssql.Int, points)
-      .input('sqlTemplate', mssql.NVarChar, sqlTemplate)
-      .query(`
-        UPDATE questions 
-        SET title = @title, description = @description, points = @points, sql_template = @sqlTemplate 
-        WHERE id = @id
-      `);
+    await MongoQuestion.findByIdAndUpdate(req.params.id, {
+      $set: { title, description, points, sql_template: sqlTemplate }
+    });
     res.status(200).json({ message: 'Question updated successfully.' });
   } catch (err) {
     next(err);
@@ -38,33 +29,13 @@ router.put('/questions/:id', async (req, res, next) => {
 
 router.delete('/questions/:id', async (req, res, next) => {
   try {
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
+    const { Question: MongoQuestion, ExamQuestion: MongoExamQuestion, SubmissionAnswer: MongoSubmissionAnswer, Mark: MongoMark } = require('../models/mongoose.model');
     const qId = parseInt(req.params.id, 10);
 
-    // Use separate pool.request() calls for each delete — the msnodesqlv8 driver
-    // does NOT reliably share @param bindings across multiple transaction.request() calls.
-    // Delete child rows first to satisfy FK constraints, then delete the parent.
-
-    // 1. Delete marks linked to this question
-    await pool.request()
-      .input('qId', mssql.Int, qId)
-      .query('DELETE FROM marks WHERE question_id = @qId');
-
-    // 2. Delete submission answers linked to this question
-    await pool.request()
-      .input('qId', mssql.Int, qId)
-      .query('DELETE FROM submission_answers WHERE question_id = @qId');
-
-    // 3. Remove question from all exams
-    await pool.request()
-      .input('qId', mssql.Int, qId)
-      .query('DELETE FROM exam_questions WHERE question_id = @qId');
-
-    // 4. Finally delete the question itself
-    await pool.request()
-      .input('qId', mssql.Int, qId)
-      .query('DELETE FROM questions WHERE id = @qId');
+    await MongoMark.deleteMany({ question_id: qId });
+    await MongoSubmissionAnswer.deleteMany({ question_id: qId });
+    await MongoExamQuestion.deleteMany({ question_id: qId });
+    await MongoQuestion.deleteOne({ _id: qId });
 
     res.status(200).json({ message: 'Question deleted successfully.' });
   } catch (err) {

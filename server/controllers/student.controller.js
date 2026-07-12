@@ -1,7 +1,6 @@
 const { Exam, Submission, Grade } = require('../models/exam.model');
 const { Student } = require('../models/entities.model');
 const UtilityModel = require('../models/utility.model');
-const pool = require('../config/db');
 
 exports.getAvailableExams = async (req, res, next) => {
   try {
@@ -10,25 +9,42 @@ exports.getAvailableExams = async (req, res, next) => {
       return res.status(404).json({ message: 'Student profile not found.' });
     }
 
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
+    const { Exam: MongoExam, Subject: MongoSubject, Teacher: MongoTeacher, Submission: MongoSubmission } = require('../models/mongoose.model');
+    const now = new Date();
+    const exams = await MongoExam.find({
+      is_published: 1,
+      is_closed: 0,
+      $or: [
+        { end_time: null },
+        { end_time: { $gt: now } }
+      ]
+    }).lean();
 
-    // Get all published exams
-    const result = await pool.request()
-      .input('studentId', mssql.Int, student.id)
-      .input('now', mssql.DateTime, new Date())
-      .query(`
-        SELECT e.*, s.name as subject_name, t.full_name as teacher_name,
-               sub.status as submission_status, sub.id as submission_id
-        FROM exams e
-        JOIN subjects s ON e.subject_id = s.id
-        JOIN teachers t ON e.teacher_id = t.id
-        LEFT JOIN submissions sub ON e.id = sub.exam_id AND sub.student_id = @studentId
-        WHERE e.is_published = 1 AND e.is_closed = 0
-          AND (e.end_time IS NULL OR e.end_time > @now)
-      `);
+    const subjectIds = exams.map(e => e.subject_id);
+    const teacherIds = exams.map(e => e.teacher_id);
+    const examIds = exams.map(e => e._id);
 
-    return res.status(200).json(result.recordset);
+    const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
+    const teachers = await MongoTeacher.find({ _id: { $in: teacherIds } }).lean();
+    const submissions = await MongoSubmission.find({ exam_id: { $in: examIds }, student_id: student.id }).lean();
+
+    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
+    const teacherMap = new Map(teachers.map(t => [t._id, t.full_name]));
+    const submissionMap = new Map(submissions.map(sub => [sub.exam_id, sub]));
+
+    const mappedResult = exams.map(e => {
+      const sub = submissionMap.get(e._id);
+      return {
+        ...e,
+        id: e._id,
+        subject_name: subjectMap.get(e.subject_id) || '',
+        teacher_name: teacherMap.get(e.teacher_id) || '',
+        submission_status: sub ? sub.status : null,
+        submission_id: sub ? sub._id : null
+      };
+    });
+
+    return res.status(200).json(mappedResult);
   } catch (error) {
     next(error);
   }
@@ -91,15 +107,10 @@ exports.getExamDetails = async (req, res, next) => {
 exports.saveAnswerDraft = async (req, res, next) => {
   try {
     const { submissionId, questionId, sqlQuery } = req.body;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
     
-    // Safety check: is submission already closed?
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT status FROM submissions WHERE id = @submissionId');
-
-    if (check.recordset.length > 0 && check.recordset[0].status !== 'Draft') {
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    const submission = await MongoSubmission.findById(submissionId).lean();
+    if (submission && submission.status !== 'Draft') {
       return res.status(400).json({ message: 'Submission is locked. You cannot edit completed exams.' });
     }
 
@@ -113,14 +124,10 @@ exports.saveAnswerDraft = async (req, res, next) => {
 exports.submitExam = async (req, res, next) => {
   try {
     const { submissionId } = req.body;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT status FROM submissions WHERE id = @submissionId');
-
-    if (check.recordset.length > 0 && check.recordset[0].status !== 'Draft') {
+    
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    const submission = await MongoSubmission.findById(submissionId).lean();
+    if (submission && submission.status !== 'Draft') {
       return res.status(400).json({ message: 'Exam has already been submitted.' });
     }
 
@@ -159,24 +166,19 @@ exports.getNotifications = async (req, res, next) => {
 exports.requestVerification = async (req, res, next) => {
   try {
     const { submissionId } = req.body;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT status FROM submissions WHERE id = @submissionId');
-
-    if (check.recordset.length === 0) {
+    
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    const submission = await MongoSubmission.findById(submissionId);
+    if (!submission) {
       return res.status(404).json({ message: 'Submission not found.' });
     }
 
-    if (check.recordset[0].status === 'Submitted') {
+    if (submission.status === 'Submitted') {
       return res.status(400).json({ message: 'Exam has already been submitted.' });
     }
 
-    await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query("UPDATE submissions SET status = 'PendingVerification' WHERE id = @submissionId");
+    submission.status = 'PendingVerification';
+    await submission.save();
 
     await UtilityModel.logActivity(req.user.id, 'Exam Verification Requested', `Requested QR verification for submission ID ${submissionId}`);
 
@@ -189,18 +191,14 @@ exports.requestVerification = async (req, res, next) => {
 exports.getSubmissionStatus = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-
-    const result = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT status FROM submissions WHERE id = @submissionId');
-
-    if (result.recordset.length === 0) {
+    
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    const submission = await MongoSubmission.findById(submissionId).lean();
+    if (!submission) {
       return res.status(404).json({ message: 'Submission not found.' });
     }
 
-    return res.status(200).json({ status: result.recordset[0].status });
+    return res.status(200).json({ status: submission.status });
   } catch (error) {
     next(error);
   }

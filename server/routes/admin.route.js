@@ -4,7 +4,6 @@ const adminController = require('../controllers/admin.controller');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { questionRules, validateRequest } = require('../middleware/validator');
 const { generatePDFReport, generateExcelReport } = require('../utils/report.util');
-const pool = require('../config/db');
 
 // Secure route logic for all admin paths
 router.use(authenticateToken);
@@ -36,11 +35,17 @@ router.get('/analytics', adminController.getAnalytics);
 // Report Exports
 router.get('/reports/pdf', async (req, res, next) => {
   try {
-    const { poolPromise } = require('../config/db');
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT u.email, r.name as role_name, u.is_active FROM users u JOIN roles r ON u.role_id = r.id');
+    const { User: MongoUser, Role: MongoRole } = require('../models/mongoose.model');
+    const users = await MongoUser.find().lean();
+    const roles = await MongoRole.find().lean();
+    const roleMap = new Map(roles.map(r => [r._id, r.name]));
+
     const headers = ['Email', 'Role', 'Status'];
-    const data = result.recordset.map(u => [u.email, u.role_name, u.is_active ? 'Active' : 'Inactive']);
+    const data = users.map(u => [
+      u.email,
+      roleMap.get(u.role_id) || 'Student',
+      u.is_active ? 'Active' : 'Inactive'
+    ]);
     generatePDFReport(res, 'Platform Users Report', headers, data);
   } catch (error) {
     next(error);
@@ -49,11 +54,17 @@ router.get('/reports/pdf', async (req, res, next) => {
 
 router.get('/reports/excel', async (req, res, next) => {
   try {
-    const { poolPromise } = require('../config/db');
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT u.email, r.name as role_name, u.is_active FROM users u JOIN roles r ON u.role_id = r.id');
+    const { User: MongoUser, Role: MongoRole } = require('../models/mongoose.model');
+    const users = await MongoUser.find().lean();
+    const roles = await MongoRole.find().lean();
+    const roleMap = new Map(roles.map(r => [r._id, r.name]));
+
     const headers = ['Email', 'Role', 'Status'];
-    const data = result.recordset.map(u => [u.email, u.role_name, u.is_active ? 'Active' : 'Inactive']);
+    const data = users.map(u => [
+      u.email,
+      roleMap.get(u.role_id) || 'Student',
+      u.is_active ? 'Active' : 'Inactive'
+    ]);
     await generateExcelReport(res, 'Users', headers, data);
   } catch (error) {
     next(error);

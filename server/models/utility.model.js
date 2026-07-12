@@ -1,80 +1,84 @@
-const { poolPromise, mssql } = require('../config/db');
+const {
+  ActivityLog: MongoActivityLog,
+  Notification: MongoNotification,
+  Setting: MongoSetting,
+  User: MongoUser,
+  getNextSequenceValue
+} = require('./mongoose.model');
 
 class UtilityModel {
   static async logActivity(userId, action, details, ipAddress = null) {
     try {
-      const pool = await poolPromise;
-      await pool.request()
-        .input('userId', mssql.Int, userId)
-        .input('action', mssql.NVarChar, action)
-        .input('details', mssql.NVarChar, details)
-        .input('ipAddress', mssql.NVarChar, ipAddress)
-        .query('INSERT INTO activity_logs (user_id, action, details, ip_address) VALUES (@userId, @action, @details, @ipAddress)');
+      const nextId = await getNextSequenceValue('activity_logs');
+      await MongoActivityLog.create({
+        _id: nextId,
+        user_id: userId || null,
+        action,
+        details,
+        ip_address: ipAddress
+      });
     } catch (err) {
       console.error('Failed to log activity:', err.message);
     }
   }
 
   static async getActivityLogs() {
-    const pool = await poolPromise;
-    const result = await pool.request().query(`
-      SELECT TOP 100 al.*, u.email 
-      FROM activity_logs al 
-      LEFT JOIN users u ON al.user_id = u.id 
-      ORDER BY al.created_at DESC
-    `);
-    return result.recordset;
+    const logs = await MongoActivityLog.find().sort({ created_at: -1 }).limit(100).lean();
+    const userIds = logs.map(l => l.user_id).filter(id => id !== null);
+    const users = await MongoUser.find({ _id: { $in: userIds } }).lean();
+    const userMap = new Map(users.map(u => [u._id, u]));
+
+    return logs.map(l => ({
+      ...l,
+      id: l._id,
+      email: l.user_id ? (userMap.get(l.user_id) ? userMap.get(l.user_id).email : '') : null
+    }));
   }
 
   static async getNotifications(userId) {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('userId', mssql.Int, userId)
-      .query('SELECT TOP 50 * FROM notifications WHERE user_id = @userId ORDER BY created_at DESC');
-    return result.recordset;
+    const notifications = await MongoNotification.find({ user_id: userId }).sort({ created_at: -1 }).limit(50).lean();
+    return notifications.map(n => ({
+      ...n,
+      id: n._id
+    }));
   }
 
   static async createNotification(userId, title, message) {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('userId', mssql.Int, userId)
-      .input('title', mssql.NVarChar, title)
-      .input('message', mssql.NVarChar, message)
-      .query('INSERT INTO notifications (user_id, title, message) VALUES (@userId, @title, @message)');
+    const nextId = await getNextSequenceValue('notifications');
+    await MongoNotification.create({
+      _id: nextId,
+      user_id: userId,
+      title,
+      message,
+      is_read: 0
+    });
   }
 
   static async markNotificationRead(id) {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('id', mssql.Int, id)
-      .query('UPDATE notifications SET is_read = 1 WHERE id = @id');
+    await MongoNotification.findByIdAndUpdate(id, { $set: { is_read: 1 } });
   }
 
   static async getSettings() {
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT * FROM settings');
-    return result.recordset.reduce((acc, current) => {
+    const settings = await MongoSetting.find().lean();
+    return settings.reduce((acc, current) => {
       acc[current.setting_key] = current.setting_value;
       return acc;
     }, {});
   }
 
   static async updateSetting(key, value) {
-    const pool = await poolPromise;
-    const check = await pool.request()
-      .input('key', mssql.NVarChar, key)
-      .query('SELECT 1 FROM settings WHERE setting_key = @key');
-
-    if (check.recordset.length > 0) {
-      await pool.request()
-        .input('key', mssql.NVarChar, key)
-        .input('value', mssql.NVarChar, value)
-        .query('UPDATE settings SET setting_value = @value, updated_at = GETDATE() WHERE setting_key = @key');
+    let setting = await MongoSetting.findOne({ setting_key: key });
+    if (setting) {
+      setting.setting_value = value;
+      setting.updated_at = Date.now();
+      await setting.save();
     } else {
-      await pool.request()
-        .input('key', mssql.NVarChar, key)
-        .input('value', mssql.NVarChar, value)
-        .query('INSERT INTO settings (setting_key, setting_value) VALUES (@key, @value)');
+      const nextId = await getNextSequenceValue('settings');
+      await MongoSetting.create({
+        _id: nextId,
+        setting_key: key,
+        setting_value: value
+      });
     }
   }
 }

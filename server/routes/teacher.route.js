@@ -4,7 +4,6 @@ const teacherController = require('../controllers/teacher.controller');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { examRules, validateRequest } = require('../middleware/validator');
 const { generateExcelReport } = require('../utils/report.util');
-const pool = require('../config/db');
 
 // Secure route logic for all teacher paths
 router.use(authenticateToken);
@@ -38,25 +37,39 @@ router.post('/submissions/:submissionId/grade', teacherController.gradeSubmissio
 router.get('/exams/:examId/export', async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-    
-    const result = await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query(`
-        SELECT s.full_name, s.roll_number, sub.status, f.comments,
-               COALESCE(SUM(m.marks_obtained), 0) as total_score
-        FROM submissions sub
-        JOIN students s ON sub.student_id = s.id
-        LEFT JOIN marks m ON sub.id = m.submission_id
-        LEFT JOIN feedback f ON sub.id = f.submission_id
-        WHERE sub.exam_id = @examId
-        GROUP BY sub.id, s.full_name, s.roll_number, sub.status, f.comments
-      `);
+    const { Submission: MongoSubmission, Student: MongoStudent, Mark: MongoMark, Feedback: MongoFeedback } = require('../models/mongoose.model');
+
+    const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
+    const studentIds = submissions.map(s => s.student_id);
+    const students = await MongoStudent.find({ _id: { $in: studentIds } }).lean();
+    const studentMap = new Map(students.map(s => [s._id, s]));
+
+    const subIds = submissions.map(s => s._id);
+    const marks = await MongoMark.find({ submission_id: { $in: subIds } }).lean();
+    const feedbacks = await MongoFeedback.find({ submission_id: { $in: subIds } }).lean();
+
+    const marksSumMap = new Map();
+    marks.forEach(m => {
+      const current = marksSumMap.get(m.submission_id) || 0;
+      marksSumMap.set(m.submission_id, current + m.marks_obtained);
+    });
+
+    const feedbackMap = new Map(feedbacks.map(f => [f.submission_id, f.comments]));
+
+    const data = submissions.map(sub => {
+      const s = studentMap.get(sub.student_id) || {};
+      const totalScore = marksSumMap.get(sub._id) || 0;
+      const comment = feedbackMap.get(sub._id) || 'N/A';
+      return [
+        s.full_name || '',
+        s.roll_number || '',
+        sub.status,
+        totalScore,
+        comment
+      ];
+    });
 
     const headers = ['Full Name', 'Roll Number', 'Status', 'Score', 'Feedback'];
-    const data = result.recordset.map(m => [m.full_name, m.roll_number, m.status, m.total_score, m.comments || 'N/A']);
-    
     await generateExcelReport(res, 'Exam Marks', headers, data);
   } catch (error) {
     next(error);

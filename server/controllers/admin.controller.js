@@ -113,26 +113,24 @@ exports.createQuestion = async (req, res, next) => {
   }
 };
 
-// Analytics & Settings
 exports.getAnalytics = async (req, res, next) => {
   try {
-    const { poolPromise } = require('../config/db');
-    const pool = await poolPromise;
+    const { User: MongoUser, Exam: MongoExam, Submission: MongoSubmission } = require('../models/mongoose.model');
 
-    const userCount = await pool.request().query('SELECT COUNT(*) as count FROM users');
-    const examCount = await pool.request().query('SELECT COUNT(*) as count FROM exams');
-    const subCount = await pool.request().query('SELECT COUNT(*) as count FROM submissions');
-    const gradedCount = await pool.request().query('SELECT COUNT(*) as count FROM submissions WHERE status=\'Graded\'');
+    const userCount = await MongoUser.countDocuments();
+    const examCount = await MongoExam.countDocuments();
+    const subCount = await MongoSubmission.countDocuments();
+    const gradedCount = await MongoSubmission.countDocuments({ status: 'Graded' });
     
     // Activity logs
     const activityLogs = await UtilityModel.getActivityLogs();
 
     return res.status(200).json({
       metrics: {
-        totalUsers: userCount.recordset[0].count,
-        totalExams: examCount.recordset[0].count,
-        totalSubmissions: subCount.recordset[0].count,
-        gradedSubmissions: gradedCount.recordset[0].count
+        totalUsers: userCount,
+        totalExams: examCount,
+        totalSubmissions: subCount,
+        gradedSubmissions: gradedCount
       },
       activityLogs
     });

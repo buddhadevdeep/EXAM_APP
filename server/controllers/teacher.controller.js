@@ -1,7 +1,6 @@
 const { Exam, Submission, Grade } = require('../models/exam.model');
 const { Teacher } = require('../models/entities.model');
 const UtilityModel = require('../models/utility.model');
-const pool = require('../config/db');
 
 exports.createExam = async (req, res, next) => {
   try {
@@ -61,12 +60,9 @@ exports.updateExam = async (req, res, next) => {
 
     // 2. Refresh linked exam questions
     if (questionIds) {
-      const { poolPromise, mssql } = require('../config/db');
-      const pool = await poolPromise;
+      const { ExamQuestion: MongoExamQuestion } = require('../models/mongoose.model');
       // Delete old questions mapping
-      await pool.request()
-        .input('examId', mssql.Int, examId)
-        .query('DELETE FROM exam_questions WHERE exam_id = @examId');
+      await MongoExamQuestion.deleteMany({ exam_id: examId });
 
       // Insert new questions mapping
       if (questionIds.length > 0) {
@@ -88,19 +84,19 @@ exports.getTeacherExams = async (req, res, next) => {
       return res.status(404).json({ message: 'Teacher profile not found.' });
     }
 
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
+    const { Exam: MongoExam, Subject: MongoSubject } = require('../models/mongoose.model');
+    const exams = await MongoExam.find({ teacher_id: teacher.id }).lean();
+    const subjectIds = exams.map(e => e.subject_id);
+    const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
+    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
 
-    const result = await pool.request()
-      .input('teacherId', mssql.Int, teacher.id)
-      .query(`
-        SELECT e.*, s.name as subject_name 
-        FROM exams e 
-        JOIN subjects s ON e.subject_id = s.id 
-        WHERE e.teacher_id = @teacherId
-      `);
+    const mapped = exams.map(e => ({
+      ...e,
+      id: e._id,
+      subject_name: subjectMap.get(e.subject_id) || ''
+    }));
 
-    return res.status(200).json(result.recordset);
+    return res.status(200).json(mapped);
   } catch (error) {
     next(error);
   }
@@ -118,25 +114,18 @@ exports.updateExamStatus = async (req, res, next) => {
 
     // If reopening, reset existing submissions to Draft state and clear previous answer history so students start fresh
     if (isClosed === 0) {
-      const { poolPromise, mssql } = require('../config/db');
-      const pool = await poolPromise;
+      const { Submission: MongoSubmission, SubmissionAnswer: MongoSubmissionAnswer } = require('../models/mongoose.model');
       
       // Get all submission IDs for this exam
-      const subRes = await pool.request()
-        .input('examId', mssql.Int, examId)
-        .query("SELECT id FROM submissions WHERE exam_id = @examId");
-      
-      const subIds = subRes.recordset.map(r => r.id);
+      const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
+      const subIds = submissions.map(sub => sub._id);
       if (subIds.length > 0) {
         // Clear previous answers
-        await pool.request()
-          .query(`DELETE FROM submission_answers WHERE submission_id IN (${subIds.join(',')})`);
+        await MongoSubmissionAnswer.deleteMany({ submission_id: { $in: subIds } });
       }
       
       // Reset submission status to Draft
-      await pool.request()
-        .input('examId', mssql.Int, examId)
-        .query("UPDATE submissions SET status = 'Draft' WHERE exam_id = @examId");
+      await MongoSubmission.updateMany({ exam_id: examId }, { $set: { status: 'Draft', submitted_at: null } });
     }
 
     await UtilityModel.logActivity(req.user.id, 'Update Exam Status', `Exam ID ${examId} status updated: ${JSON.stringify(updates)}`);
@@ -205,15 +194,12 @@ exports.gradeSubmission = async (req, res, next) => {
     // Notify Student
     const details = await Submission.getSubmissionDetails(submissionId);
     if (details) {
-      const { poolPromise, mssql } = require('../config/db');
-      const pool = await poolPromise;
-      const studentUser = await pool.request()
-        .input('studentId', mssql.Int, details.student_id)
-        .query('SELECT user_id FROM students WHERE id = @studentId');
+      const { Student: MongoStudent } = require('../models/mongoose.model');
+      const studentDoc = await MongoStudent.findById(details.student_id).lean();
 
-      if (studentUser.recordset.length > 0) {
+      if (studentDoc) {
         await UtilityModel.createNotification(
-          studentUser.recordset[0].user_id,
+          studentDoc.user_id,
           'Exam Graded',
           `Your submission for "${details.exam_title}" has been graded. Marks: ${overallFeedback ? 'Overall feedback provided' : 'View breakdown'}`
         );
@@ -229,7 +215,6 @@ exports.gradeSubmission = async (req, res, next) => {
 };
 
 const User = require('../models/user.model');
-const { Student } = require('../models/entities.model');
 const bcrypt = require('bcrypt');
 
 exports.getAllStudents = async (req, res, next) => {
@@ -261,7 +246,8 @@ exports.createStudent = async (req, res, next) => {
       emailVerified: 1
     });
 
-    await Student.create({
+    const { Student: MongoStudent } = require('../models/entities.model');
+    await MongoStudent.create({
       userId,
       fullName,
       rollNumber,
@@ -289,18 +275,11 @@ exports.updateStudent = async (req, res, next) => {
     await User.update(userId, updates);
 
     // Update student details
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-    await pool.request()
-      .input('userId', mssql.Int, userId)
-      .input('fullName', mssql.NVarChar, fullName)
-      .input('rollNumber', mssql.NVarChar, rollNumber)
-      .input('classSection', mssql.NVarChar, classSection)
-      .query(`
-        UPDATE students 
-        SET full_name = @fullName, roll_number = @rollNumber, class_section = @classSection 
-        WHERE user_id = @userId
-      `);
+    const { Student: MongoStudent } = require('../models/mongoose.model');
+    await MongoStudent.updateOne(
+      { user_id: userId },
+      { $set: { full_name: fullName, roll_number: rollNumber, class_section: classSection } }
+    );
 
     await UtilityModel.logActivity(req.user.id, 'Update Student', `Updated student ID ${userId}: ${fullName}`);
     return res.status(200).json({ message: 'Student updated successfully.' });
@@ -336,23 +315,19 @@ exports.toggleStudentStatus = async (req, res, next) => {
 exports.deleteExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
     
-    // Delete submissions for this exam first (cascades answers, marks, feedback)
-    await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query('DELETE FROM submissions WHERE exam_id = @examId');
-
-    // Delete questions mappings for this exam
-    await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query('DELETE FROM exam_questions WHERE exam_id = @examId');
-
-    // Delete the exam
-    await pool.request()
-      .input('examId', mssql.Int, examId)
-      .query('DELETE FROM exams WHERE id = @examId');
+    const { Submission: MongoSubmission, SubmissionAnswer: MongoSubmissionAnswer, Mark: MongoMark, Feedback: MongoFeedback, ExamQuestion: MongoExamQuestion, Exam: MongoExam } = require('../models/mongoose.model');
+    
+    const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
+    const subIds = submissions.map(s => s._id);
+    if (subIds.length > 0) {
+      await MongoSubmissionAnswer.deleteMany({ submission_id: { $in: subIds } });
+      await MongoMark.deleteMany({ submission_id: { $in: subIds } });
+      await MongoFeedback.deleteMany({ submission_id: { $in: subIds } });
+      await MongoSubmission.deleteMany({ exam_id: examId });
+    }
+    await MongoExamQuestion.deleteMany({ exam_id: examId });
+    await MongoExam.deleteOne({ _id: examId });
 
     await UtilityModel.logActivity(req.user.id, 'Delete Exam', `Deleted exam ID ${examId}`);
     return res.status(200).json({ message: 'Exam deleted successfully.' });
@@ -364,25 +339,20 @@ exports.deleteExam = async (req, res, next) => {
 exports.verifySubmission = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
-    const { poolPromise, mssql } = require('../config/db');
-    const pool = await poolPromise;
-
-    const check = await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query('SELECT status FROM submissions WHERE id = @submissionId');
-
-    if (check.recordset.length === 0) {
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    const submission = await MongoSubmission.findById(submissionId);
+    if (!submission) {
       return res.status(404).json({ message: 'Submission not found.' });
     }
 
-    if (check.recordset[0].status === 'Submitted') {
+    if (submission.status === 'Submitted') {
       return res.status(400).json({ message: 'Exam has already been verified and submitted.' });
     }
 
     // Update status to Submitted
-    await pool.request()
-      .input('submissionId', mssql.Int, submissionId)
-      .query("UPDATE submissions SET status = 'Submitted', submitted_at = GETDATE() WHERE id = @submissionId");
+    submission.status = 'Submitted';
+    submission.submitted_at = Date.now();
+    await submission.save();
 
     await UtilityModel.logActivity(req.user.id, 'Exam Submission Verified', `Teacher verified submission ID ${submissionId}`);
 
@@ -391,4 +361,3 @@ exports.verifySubmission = async (req, res, next) => {
     next(error);
   }
 };
-
