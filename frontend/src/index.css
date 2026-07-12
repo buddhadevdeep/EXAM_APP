@@ -40,19 +40,49 @@ body.light-mode {
 
 .dark-mode .glass-card {
   background: var(--bg-card-dark);
-  border-color: var(--border-dark);
+  border-color: rgba(99, 102, 241, 0.3);
   color: var(--text-light);
+  box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.3), 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
 .light-mode .glass-card {
   background: var(--bg-card-light);
   border-color: var(--border-light);
   color: var(--text-dark);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.15), 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }
 
-.glass-card:hover {
+.dark-mode .glass-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 15px 50px -5px rgba(99, 102, 241, 0.45), 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+}
+
+.light-mode .glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px -5px rgba(99, 102, 241, 0.25), 0 12px 40px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* Autofill Overrides to prevent default white background on browser autofill */
+.dark-mode input:-webkit-autofill,
+.dark-mode input:-webkit-autofill:hover,
+.dark-mode input:-webkit-autofill:focus,
+.dark-mode select:-webkit-autofill,
+.dark-mode select:-webkit-autofill:hover,
+.dark-mode select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-light) !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(15, 23, 42, 0.8) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.light-mode input:-webkit-autofill,
+.light-mode input:-webkit-autofill:hover,
+.light-mode input:-webkit-autofill:focus,
+.light-mode select:-webkit-autofill,
+.light-mode select:-webkit-autofill:hover,
+.light-mode select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-dark) !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.9) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Micro Animations */

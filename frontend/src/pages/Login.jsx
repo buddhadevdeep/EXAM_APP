@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaSignInAlt, FaUserPlus } from 'react-icons/fa';
+import { FaSignInAlt, FaUserPlus, FaSun, FaMoon } from 'react-icons/fa';
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -16,7 +16,7 @@ const Login = () => {
   const [department, setDepartment] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { login } = useAuth();
+  const { login, darkMode, toggleTheme } = useAuth();
   const navigate = useNavigate();
 
   const handleAction = async (e) => {
@@ -55,8 +55,27 @@ const Login = () => {
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 px-3 bg-dark" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' }}>
-      <div className="card glass-card p-4 animated-fade text-white shadow-lg border-secondary" style={{ maxWidth: '480px', width: '100%', borderRadius: '24px' }}>
+    <div 
+      className="d-flex align-items-center justify-content-center min-vh-100 px-3 position-relative" 
+      style={{ 
+        background: darkMode 
+          ? 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' 
+          : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        transition: 'background 0.3s ease'
+      }}
+    >
+      {/* Floating Theme Toggle */}
+      <button 
+        onClick={toggleTheme} 
+        className="btn btn-outline-secondary position-absolute top-0 end-0 m-4 rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+        style={{ width: '40px', height: '40px' }}
+        title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        type="button"
+      >
+        {darkMode ? <FaSun className="text-warning" /> : <FaMoon />}
+      </button>
+
+      <div className="card glass-card p-4 animated-fade shadow-lg" style={{ maxWidth: '480px', width: '100%', borderRadius: '24px' }}>
         
         {/* Sign In Header */}
         <div className="d-flex justify-content-center mb-4">
@@ -69,10 +88,10 @@ const Login = () => {
         <form onSubmit={handleAction}>
           {isRegister && (
             <div className="mb-3">
-              <label className="form-label text-light">Full Name</label>
+              <label className="form-label">Full Name</label>
               <input 
                 type="text" 
-                className="form-control bg-dark text-white border-secondary" 
+                className="form-control" 
                 value={fullName} 
                 onChange={(e) => setFullName(e.target.value)} 
                 required 
@@ -81,10 +100,10 @@ const Login = () => {
           )}
 
           <div className="mb-3">
-            <label className="form-label text-light">Email Address</label>
+            <label className="form-label">Email Address</label>
             <input 
               type="email" 
-              className="form-control bg-dark text-white border-secondary" 
+              className="form-control" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
@@ -92,10 +111,10 @@ const Login = () => {
           </div>
 
           <div className="mb-3">
-            <label className="form-label text-light">Password</label>
+            <label className="form-label">Password</label>
             <input 
               type="password" 
-              className="form-control bg-dark text-white border-secondary" 
+              className="form-control" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               required 
@@ -105,9 +124,9 @@ const Login = () => {
           {isRegister && (
             <>
               <div className="mb-3">
-                <label className="form-label text-light">Role Profile</label>
+                <label className="form-label">Role Profile</label>
                 <select 
-                  className="form-select bg-dark text-white border-secondary" 
+                  className="form-select" 
                   value={roleId} 
                   onChange={(e) => setRoleId(parseInt(e.target.value))}
                 >
@@ -119,20 +138,20 @@ const Login = () => {
               {roleId === 3 ? (
                 <div className="row">
                   <div className="col-6 mb-3">
-                    <label className="form-label text-light">Roll Number</label>
+                    <label className="form-label">Roll Number</label>
                     <input 
                       type="text" 
-                      className="form-control bg-dark text-white border-secondary" 
+                      className="form-control" 
                       value={rollNumber} 
                       onChange={(e) => setRollNumber(e.target.value)} 
                       required 
                     />
                   </div>
                   <div className="col-6 mb-3">
-                    <label className="form-label text-light">Class/Section</label>
+                    <label className="form-label">Class/Section</label>
                     <input 
                       type="text" 
-                      className="form-control bg-dark text-white border-secondary" 
+                      className="form-control" 
                       value={classSection} 
                       onChange={(e) => setClassSection(e.target.value)} 
                       required 
@@ -141,10 +160,10 @@ const Login = () => {
                 </div>
               ) : (
                 <div className="mb-3">
-                  <label className="form-label text-light">Department Name</label>
+                  <label className="form-label">Department Name</label>
                   <input 
                     type="text" 
-                    className="form-control bg-dark text-white border-secondary" 
+                    className="form-control" 
                     value={department} 
                     onChange={(e) => setDepartment(e.target.value)} 
                     required 
@@ -159,15 +178,6 @@ const Login = () => {
             {isRegister ? 'Create Account' : 'Sign In'}
           </button>
         </form>
-
-        {!isRegister && (
-          <div className="mt-4 p-3 bg-dark border border-secondary rounded-3 small" style={{ opacity: 0.85 }}>
-            <span className="fw-bold text-primary">Demo Logins (Password: password123):</span>
-            <div className="mt-2 text-muted">Admin: admin@platform.com</div>
-            <div className="text-muted">Teacher: teacher1@platform.com</div>
-            <div className="text-muted">Student: student1@platform.com</div>
-          </div>
-        )}
       </div>
     </div>
   );
