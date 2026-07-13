@@ -186,7 +186,7 @@ const Login = () => {
         </div>
 
         <div className="text-center mt-4 text-muted small" style={{ fontSize: '0.85rem', letterSpacing: '0.5px' }}>
-          devloped by @ buddhadev deep and @mnava delvadiya
+          developed by @buddhadev deep and @manav delvadiya
         </div>
       </div>
     </div>
