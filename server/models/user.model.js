@@ -55,6 +55,7 @@ class User {
     if (updates.email_verified !== undefined) updateObj.email_verified = updates.email_verified;
     if (updates.verification_token !== undefined) updateObj.verification_token = updates.verification_token;
     if (updates.current_session_id !== undefined) updateObj.current_session_id = updates.current_session_id;
+    if (updates.last_active_at !== undefined) updateObj.last_active_at = updates.last_active_at;
     if (updates.email !== undefined) updateObj.email = updates.email;
     if (updates.role_id !== undefined) updateObj.role_id = updates.role_id;
 

@@ -192,6 +192,12 @@ body.light-mode {
   box-sizing: border-box !important;
 }
 
+@media (max-width: 576px) {
+  .fullscreen-exam-container:fullscreen {
+    padding: 12px !important;
+  }
+}
+
 .dark-mode .fullscreen-exam-container:fullscreen {
   background-color: var(--bg-dark) !important;
   color: var(--text-light) !important;

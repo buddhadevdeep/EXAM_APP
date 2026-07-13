@@ -34,6 +34,7 @@ const UserSchema = new mongoose.Schema({
   email_verified: { type: Number, default: 0 },
   verification_token: { type: String, default: null },
   current_session_id: { type: String, default: null },
+  last_active_at: { type: Date, default: null },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

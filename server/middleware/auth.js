@@ -21,6 +21,8 @@ const authenticateToken = async (req, res, next) => {
       if (!dbUser || dbUser.current_session_id !== decoded.sessionId) {
         return res.status(401).json({ message: 'Session expired. You have logged in from another device.' });
       }
+      // Update last active time in database
+      await User.update(decoded.id, { last_active_at: new Date() });
     }
 
     next();

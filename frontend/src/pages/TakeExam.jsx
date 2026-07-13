@@ -567,7 +567,7 @@ const TakeExam = () => {
           onClick={startExamFullscreen}
         >
           {warningCount === 0 ? (
-            <div className="card glass-card p-5 text-center shadow-lg border-primary" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="card glass-card p-4 p-sm-5 text-center shadow-lg border-primary" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
               <h3 className="fw-bold mb-3 text-primary">Secure Exam Session</h3>
               <p className="text-muted mb-4">
                 This secure exam requires fullscreen mode to prevent cheating and browser navigation.
@@ -578,7 +578,7 @@ const TakeExam = () => {
               <span className="text-muted small d-block mt-3">Or click anywhere on this screen to start</span>
             </div>
           ) : (
-            <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="card glass-card p-4 p-sm-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
               <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
               <p className="text-muted mb-4">
                 You have exited fullscreen mode or pressed a restricted key. You must return to fullscreen mode immediately to resume your exam.
@@ -599,7 +599,7 @@ const TakeExam = () => {
         </div>
       ) : isWaitingVerification ? (
         <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh' }}>
-          <div className="card glass-card p-5 text-center shadow-lg border-success" style={{ maxWidth: '500px', borderRadius: '24px' }}>
+          <div className="card glass-card p-3 p-sm-5 text-center shadow-lg border-success" style={{ maxWidth: '500px', borderRadius: '24px', width: '90%' }}>
             <h3 className="fw-bold mb-3 text-success">Verification Required</h3>
             <p className="mb-3 text-muted">
               Your exam answers have been saved and locked. Please ask your teacher to scan the QR code below from their phone to authorize your submission.
@@ -608,13 +608,13 @@ const TakeExam = () => {
               Submission ID: #{data?.submission?.id}
             </div>
             <div className="d-flex justify-content-center mb-4">
-              <div className="p-3 bg-white rounded-4 shadow-sm" style={{ width: 'fit-content' }}>
+              <div className="p-2 p-sm-3 bg-white rounded-4 shadow-sm" style={{ width: 'fit-content' }}>
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
                     `${window.location.origin}/verify-submission/${data?.submission?.id}`
                   )}`} 
                   alt="Submission Verification QR Code" 
-                  style={{ width: '220px', height: '220px', display: 'block' }}
+                  style={{ width: '220px', maxWidth: '100%', height: 'auto', display: 'block' }}
                 />
               </div>
             </div>
@@ -629,7 +629,7 @@ const TakeExam = () => {
 
           {showSubmitConfirm && (
             <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh' }}>
-              <div className="card glass-card p-5 text-center shadow-lg border-success" style={{ maxWidth: '500px' }}>
+              <div className="card glass-card p-4 p-sm-5 text-center shadow-lg border-success" style={{ maxWidth: '500px' }}>
                 <h3 className="fw-bold mb-3 text-success">Submit Exam?</h3>
                 <p className="mb-4 text-muted">
                   Are you sure you want to finalize and submit the exam? You will not be able to edit your answers after this.
@@ -648,7 +648,7 @@ const TakeExam = () => {
 
           {showViolationModal && (
             <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh', background: 'rgba(9, 13, 22, 0.95)' }}>
-              <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }}>
+              <div className="card glass-card p-4 p-sm-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }}>
                 <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
                 <p className="text-muted mb-4">
                   You have pressed a restricted key combination (Escape or Alt shortcut). You must return to the exam immediately.
@@ -668,7 +668,7 @@ const TakeExam = () => {
           <>
               {isExitedFullscreen && (
                 <div className="secure-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh', zIndex: 9999 }}>
-                  <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px' }}>
+                  <div className="card glass-card p-4 p-sm-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px' }}>
                     <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
                     <p className="mb-4 text-muted">
                       You have exited fullscreen mode. To continue your exam, you must return to fullscreen mode immediately.

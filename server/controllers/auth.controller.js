@@ -28,8 +28,18 @@ exports.login = async (req, res, next) => {
     // Generate JWT token
     const tokenPayload = { id: user.id, email: user.email, role: user.role_name };
     if (user.role_name === 'Student') {
+      if (user.current_session_id && user.last_active_at) {
+        const inactiveThresholdMs = 2 * 60 * 1000; // 2 minutes
+        const isSessionActive = (Date.now() - new Date(user.last_active_at).getTime()) < inactiveThresholdMs;
+        if (isSessionActive) {
+          return res.status(403).json({
+            message: 'Access Denied: You are already logged in on another device/browser. Please log out from that device or try again in 2 minutes.'
+          });
+        }
+      }
+
       const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-      await User.update(user.id, { current_session_id: sessionId });
+      await User.update(user.id, { current_session_id: sessionId, last_active_at: new Date() });
       tokenPayload.sessionId = sessionId;
     }
 
@@ -172,3 +182,15 @@ exports.changePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.logout = async (req, res, next) => {
+  try {
+    if (req.user && req.user.role === 'Student') {
+      await User.update(req.user.id, { current_session_id: null, last_active_at: null });
+    }
+    return res.status(200).json({ message: 'Logged out successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+

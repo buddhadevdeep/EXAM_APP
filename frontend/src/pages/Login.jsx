@@ -75,109 +75,119 @@ const Login = () => {
         {darkMode ? <FaSun className="text-warning" /> : <FaMoon />}
       </button>
 
-      <div className="card glass-card p-4 animated-fade shadow-lg" style={{ maxWidth: '480px', width: '100%', borderRadius: '24px' }}>
-        
-        {/* Sign In Header */}
-        <div className="d-flex justify-content-center mb-4">
-          <h3 className="text-primary border-bottom border-primary border-3 pb-2 fw-bold">Sign In</h3>
-        </div>
+      <div className="d-flex flex-column align-items-center" style={{ maxWidth: '480px', width: '100%' }}>
+        <h1 className="fw-bold mb-4 text-center text-gradient text-uppercase animate-fade" style={{ letterSpacing: '2px', fontSize: '2.4rem' }}>
+          SQL EXAM APP
+        </h1>
 
-        {error && <div className="alert alert-danger py-2">{error}</div>}
-        {success && <div className="alert alert-success py-2">{success}</div>}
+        <div className="card glass-card p-4 animated-fade shadow-lg w-100" style={{ borderRadius: '24px' }}>
+          
+          {/* Sign In Header */}
+          <div className="d-flex justify-content-center mb-4">
+            <h3 className="text-primary border-bottom border-primary border-3 pb-2 fw-bold">Sign In</h3>
+          </div>
 
-        <form onSubmit={handleAction}>
-          {isRegister && (
+          {error && <div className="alert alert-danger py-2">{error}</div>}
+          {success && <div className="alert alert-success py-2">{success}</div>}
+
+          <form onSubmit={handleAction}>
+            {isRegister && (
+              <div className="mb-3">
+                <label className="form-label">Full Name</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)} 
+                  required 
+                />
+              </div>
+            )}
+
             <div className="mb-3">
-              <label className="form-label">Full Name</label>
+              <label className="form-label">Email Address</label>
               <input 
-                type="text" 
+                type="email" 
                 className="form-control" 
-                value={fullName} 
-                onChange={(e) => setFullName(e.target.value)} 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
                 required 
               />
             </div>
-          )}
 
-          <div className="mb-3">
-            <label className="form-label">Email Address</label>
-            <input 
-              type="email" 
-              className="form-control" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-            />
-          </div>
+            <div className="mb-3">
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                className="form-control" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              className="form-control" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-            />
-          </div>
-
-          {isRegister && (
-            <>
-              <div className="mb-3">
-                <label className="form-label">Role Profile</label>
-                <select 
-                  className="form-select" 
-                  value={roleId} 
-                  onChange={(e) => setRoleId(parseInt(e.target.value))}
-                >
-                  <option value={3}>Student</option>
-                  <option value={2}>Teacher</option>
-                </select>
-              </div>
-
-              {roleId === 3 ? (
-                <div className="row">
-                  <div className="col-6 mb-3">
-                    <label className="form-label">Roll Number</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      value={rollNumber} 
-                      onChange={(e) => setRollNumber(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="col-6 mb-3">
-                    <label className="form-label">Class/Section</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      value={classSection} 
-                      onChange={(e) => setClassSection(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                </div>
-              ) : (
+            {isRegister && (
+              <>
                 <div className="mb-3">
-                  <label className="form-label">Department Name</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    value={department} 
-                    onChange={(e) => setDepartment(e.target.value)} 
-                    required 
-                  />
+                  <label className="form-label">Role Profile</label>
+                  <select 
+                    className="form-select" 
+                    value={roleId} 
+                    onChange={(e) => setRoleId(parseInt(e.target.value))}
+                  >
+                    <option value={3}>Student</option>
+                    <option value={2}>Teacher</option>
+                  </select>
                 </div>
-              )}
-            </>
-          )}
 
-          <button type="submit" className="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2 mt-4">
-            {isRegister ? <FaUserPlus /> : <FaSignInAlt />}
-            {isRegister ? 'Create Account' : 'Sign In'}
-          </button>
-        </form>
+                {roleId === 3 ? (
+                  <div className="row">
+                    <div className="col-6 mb-3">
+                      <label className="form-label">Roll Number</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={rollNumber} 
+                        onChange={(e) => setRollNumber(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    <div className="col-6 mb-3">
+                      <label className="form-label">Class/Section</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={classSection} 
+                        onChange={(e) => setClassSection(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <label className="form-label">Department Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={department} 
+                      onChange={(e) => setDepartment(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            <button type="submit" className="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2 mt-4">
+              {isRegister ? <FaUserPlus /> : <FaSignInAlt />}
+              {isRegister ? 'Create Account' : 'Sign In'}
+            </button>
+          </form>
+        </div>
+
+        <div className="text-center mt-4 text-muted small" style={{ fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+          devloped by @ buddhadev deep and @mnava delvadiya
+        </div>
       </div>
     </div>
   );
