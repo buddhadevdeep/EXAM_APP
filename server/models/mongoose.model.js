@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   is_active: { type: Number, default: 1 },
   email_verified: { type: Number, default: 0 },
   verification_token: { type: String, default: null },
+  current_session_id: { type: String, default: null },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

@@ -79,7 +79,7 @@ const StudentDashboard = () => {
 
       <div className="row">
         {exams.map((exam) => (
-          <div key={exam.id} className="col-md-6 mb-4">
+          <div key={exam.id} className="col-lg-6 col-12 mb-4">
             <div className="card glass-card p-4 h-100 d-flex flex-column">
               <div className="d-flex justify-content-between align-items-start mb-2">
                 <span className="badge bg-secondary">{exam.subject_name}</span>
@@ -106,11 +106,11 @@ const StudentDashboard = () => {
               {(exam.start_time || exam.end_time) && (
                 <div className="p-2 bg-light rounded text-center small mb-3">
                   <div className="fw-bold text-primary mb-1">Access Timeline Window:</div>
-                  <span className="text-muted">
-                    {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Open'}
-                    <span className="mx-2">to</span>
-                    {exam.end_time ? new Date(exam.end_time).toLocaleString() : 'Expiry Closed'}
-                  </span>
+                  <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-1 text-muted">
+                    <span><strong>Start:</strong> {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Open'}</span>
+                    <span className="d-none d-sm-inline mx-1">•</span>
+                    <span><strong>End:</strong> {exam.end_time ? new Date(exam.end_time).toLocaleString() : 'Expiry Closed'}</span>
+                  </div>
                 </div>
               )}
 

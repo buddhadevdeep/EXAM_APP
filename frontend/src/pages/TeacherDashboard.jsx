@@ -69,7 +69,7 @@ const TeacherDashboard = () => {
           <h4 className="fw-bold mb-3 text-secondary">Active Exams</h4>
           <div className="row">
             {exams.map((exam) => (
-              <div key={exam.id} className="col-md-6 mb-4">
+              <div key={exam.id} className="col-lg-6 col-12 mb-4">
                 <div className="card glass-card h-100 p-3 shadow-sm">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <span className="badge bg-secondary">{exam.subject_name}</span>
@@ -97,34 +97,42 @@ const TeacherDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="d-flex gap-1 mt-2">
-                    <Link to={`/teacher/exams/${exam.id}/edit`} className="btn btn-sm btn-outline-secondary w-100">
-                      Edit Settings & Questions
-                    </Link>
+                  <div className="row g-2 mt-2">
+                    <div className="col-12">
+                      <Link to={`/teacher/exams/${exam.id}/edit`} className="btn btn-sm btn-outline-secondary w-100">
+                        Edit Settings & Questions
+                      </Link>
+                    </div>
+                    <div className="col-sm-4 col-12">
+                      <Link to={`/teacher/exams/${exam.id}/submissions`} className="btn btn-sm btn-outline-primary w-100">
+                        Submissions
+                      </Link>
+                    </div>
+                    <div className="col-sm-4 col-6">
+                      <button 
+                        className={`btn btn-sm ${exam.is_published ? 'btn-outline-warning' : 'btn-success'} w-100`}
+                        onClick={() => toggleStatus(exam.id, !exam.is_published ? 1 : 0, exam.is_closed)}
+                      >
+                        {exam.is_published ? 'Unpublish' : 'Publish'}
+                      </button>
+                    </div>
+                    <div className="col-sm-4 col-6">
+                      <button 
+                        className={`btn btn-sm ${exam.is_closed ? 'btn-success' : 'btn-danger'} w-100`}
+                        onClick={() => toggleStatus(exam.id, exam.is_published, !exam.is_closed ? 1 : 0)}
+                      >
+                        {exam.is_closed ? 'Reopen Exam' : 'Close Exam'}
+                      </button>
+                    </div>
+                    <div className="col-12">
+                      <button 
+                        className="btn btn-sm btn-outline-danger w-100"
+                        onClick={() => handleDeleteExam(exam.id, exam.title)}
+                      >
+                        Delete Exam
+                      </button>
+                    </div>
                   </div>
-                  <div className="d-flex gap-2 mt-2">
-                    <Link to={`/teacher/exams/${exam.id}/submissions`} className="btn btn-sm btn-outline-primary flex-grow-1">
-                      Submissions
-                    </Link>
-                    <button 
-                      className={`btn btn-sm ${exam.is_published ? 'btn-outline-warning' : 'btn-success'}`}
-                      onClick={() => toggleStatus(exam.id, !exam.is_published ? 1 : 0, exam.is_closed)}
-                    >
-                      {exam.is_published ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button 
-                      className={`btn btn-sm ${exam.is_closed ? 'btn-success' : 'btn-danger'}`}
-                      onClick={() => toggleStatus(exam.id, exam.is_published, !exam.is_closed ? 1 : 0)}
-                    >
-                      {exam.is_closed ? 'Reopen Exam' : 'Close Exam'}
-                    </button>
-                  </div>
-                  <button 
-                    className="btn btn-sm btn-outline-danger w-100 mt-2"
-                    onClick={() => handleDeleteExam(exam.id, exam.title)}
-                  >
-                    Delete Exam
-                  </button>
                 </div>
               </div>
             ))}

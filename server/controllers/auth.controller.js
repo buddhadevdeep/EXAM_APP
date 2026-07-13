@@ -26,8 +26,15 @@ exports.login = async (req, res, next) => {
     }
 
     // Generate JWT token
+    const tokenPayload = { id: user.id, email: user.email, role: user.role_name };
+    if (user.role_name === 'Student') {
+      const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      await User.update(user.id, { current_session_id: sessionId });
+      tokenPayload.sessionId = sessionId;
+    }
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role_name },
+      tokenPayload,
       config.JWT_SECRET,
       { expiresIn: config.JWT_EXPIRE }
     );

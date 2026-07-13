@@ -52,6 +52,25 @@ export const AuthProvider = ({ children }) => {
     verifyUser();
   }, [token]);
 
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          const errMsg = error.response.data?.message || '';
+          if (errMsg.includes('Session expired') || errMsg.includes('logged in from another device')) {
+            alert('Your session has expired because you logged in from another device.');
+            logout();
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   const login = async (email, password) => {
     const res = await axios.post(`${API_BASE}/api/auth/login`, { email, password });
     const { token: userToken, user: userData } = res.data;
