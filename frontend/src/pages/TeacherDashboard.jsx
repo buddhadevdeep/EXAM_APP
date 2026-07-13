@@ -103,12 +103,12 @@ const TeacherDashboard = () => {
                         Edit Settings & Questions
                       </Link>
                     </div>
-                    <div className="col-sm-4 col-12">
+                    <div className="col-md-6 col-12">
                       <Link to={`/teacher/exams/${exam.id}/submissions`} className="btn btn-sm btn-outline-primary w-100">
                         Submissions
                       </Link>
                     </div>
-                    <div className="col-sm-4 col-12">
+                    <div className="col-md-6 col-12">
                       <button 
                         className={`btn btn-sm ${exam.is_published ? 'btn-outline-warning' : 'btn-success'} w-100`}
                         onClick={() => toggleStatus(exam.id, !exam.is_published ? 1 : 0, exam.is_closed)}
@@ -116,7 +116,7 @@ const TeacherDashboard = () => {
                         {exam.is_published ? 'Unpublish' : 'Publish'}
                       </button>
                     </div>
-                    <div className="col-sm-4 col-12">
+                    <div className="col-md-6 col-12">
                       <button 
                         className={`btn btn-sm ${exam.is_closed ? 'btn-success' : 'btn-danger'} w-100`}
                         onClick={() => toggleStatus(exam.id, exam.is_published, !exam.is_closed ? 1 : 0)}
@@ -124,7 +124,7 @@ const TeacherDashboard = () => {
                         {exam.is_closed ? 'Reopen Exam' : 'Close Exam'}
                       </button>
                     </div>
-                    <div className="col-12">
+                    <div className="col-md-6 col-12">
                       <button 
                         className="btn btn-sm btn-outline-danger w-100"
                         onClick={() => handleDeleteExam(exam.id, exam.title)}
