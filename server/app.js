@@ -23,12 +23,14 @@ app.use(morgan('dev'));
 // CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL
-];
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : ""
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Standardize origin lookup (without trailing slash)
+    const normalizedOrigin = origin ? origin.replace(/\/$/, "") : "";
+    if (!origin || allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Sidebar from './components/Sidebar';
@@ -60,14 +60,21 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const AppLayout = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const location = useLocation();
   
   if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
 
+  const isExamPage = location.pathname.startsWith('/student/exams/');
+
   return (
     <div className="d-flex min-vh-100">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      {sidebarOpen && (
-        <div className="sidebar-backdrop d-md-none" onClick={() => setSidebarOpen(false)} />
+      {!isExamPage && (
+        <>
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          {sidebarOpen && (
+            <div className="sidebar-backdrop d-md-none" onClick={() => setSidebarOpen(false)} />
+          )}
+        </>
       )}
       <div className="flex-grow-1 d-flex flex-column" style={{ overflowX: 'hidden' }}>
         <Navbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />

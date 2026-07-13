@@ -9,6 +9,12 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Custom Modal States
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [accessCode, setAccessCode] = useState('');
+  const [accessError, setAccessError] = useState('');
+
   useEffect(() => {
     const fetchExams = async () => {
       try {
@@ -23,35 +29,46 @@ const StudentDashboard = () => {
     fetchExams();
   }, []);
 
-  const handleStartExam = async (exam) => {
-    const enterFS = async () => {
-      try {
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          await docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) {
-          await docEl.webkitRequestFullscreen();
-        } else if (docEl.msRequestFullscreen) {
-          await docEl.msRequestFullscreen();
-        }
-      } catch (err) {
-        console.error("Fullscreen request failed:", err);
+  const enterFS = async () => {
+    try {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        await docEl.requestFullscreen();
+      } else if (docEl.webkitRequestFullscreen) {
+        await docEl.webkitRequestFullscreen();
+      } else if (docEl.msRequestFullscreen) {
+        await docEl.msRequestFullscreen();
       }
-    };
+    } catch (err) {
+      console.error("Fullscreen request failed:", err);
+    }
+  };
 
+  const handleStartExam = async (exam) => {
     if (exam.access_code) {
-      const code = prompt('This secure exam requires an access code. Please enter the passcode provided by your instructor:');
-      if (!code) return;
-      if (code !== exam.access_code) {
-        alert('Incorrect passcode. Access denied.');
-        return;
-      }
-      await enterFS();
-      navigate(`/student/exams/${exam.id}?code=${code}`);
+      setSelectedExam(exam);
+      setAccessCode('');
+      setAccessError('');
+      setShowAccessModal(true);
     } else {
       await enterFS();
       navigate(`/student/exams/${exam.id}`);
     }
+  };
+
+  const handleAccessSubmit = async (e) => {
+    e.preventDefault();
+    if (!accessCode) {
+      setAccessError('Passcode is required.');
+      return;
+    }
+    if (accessCode !== selectedExam.access_code) {
+      setAccessError('Incorrect passcode. Access denied.');
+      return;
+    }
+    setShowAccessModal(false);
+    await enterFS();
+    navigate(`/student/exams/${selectedExam.id}?code=${accessCode}`);
   };
 
   if (loading) return <div className="container mt-4"><div className="skeleton-line" /></div>;
@@ -119,6 +136,73 @@ const StudentDashboard = () => {
           </div>
         )}
       </div>
+
+      {showAccessModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content glass-card p-4 shadow-lg border-danger" style={{ borderRadius: '16px' }}>
+              <div className="modal-header border-0 pb-0 d-flex justify-content-between align-items-center">
+                <h5 className="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                  <FaLock className="text-danger animate-pulse" /> Secure Exam Access
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowAccessModal(false)}></button>
+              </div>
+              <form onSubmit={handleAccessSubmit}>
+                <div className="modal-body pt-3">
+                  <p className="text-muted small mb-3">
+                    This exam is password-protected. Please enter the passcode provided by your instructor to begin.
+                  </p>
+                  
+                  <div className="mb-2">
+                    <input
+                      type="password"
+                      className={`form-control ${accessError ? 'is-invalid' : ''}`}
+                      placeholder="Enter Access Passcode"
+                      value={accessCode}
+                      onChange={(e) => {
+                        setAccessCode(e.target.value);
+                        if (accessError) setAccessError('');
+                      }}
+                      autoFocus
+                      required
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        letterSpacing: '2px',
+                        textAlign: 'center',
+                        fontSize: '1.1rem',
+                        fontWeight: '600'
+                      }}
+                    />
+                    {accessError && (
+                      <div className="invalid-feedback text-center mt-2 fw-medium">
+                        {accessError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary px-4" 
+                    onClick={() => setShowAccessModal(false)}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-danger px-4 d-flex align-items-center gap-2"
+                    style={{ borderRadius: '8px' }}
+                  >
+                    Start Exam
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

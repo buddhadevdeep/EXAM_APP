@@ -2,12 +2,14 @@ import API_BASE from '../config/api.js';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaSave, FaCheckDouble, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaSave, FaCheckDouble, FaChevronLeft, FaChevronRight, FaSun, FaMoon } from 'react-icons/fa';
 import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import SmartHints from '../components/SmartHints';
+import { useAuth } from '../context/AuthContext';
 
 const TakeExam = () => {
   const { examId } = useParams();
+  const { user, darkMode, toggleTheme } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -17,8 +19,89 @@ const TakeExam = () => {
   const navigate = useNavigate();
 
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showFullscreenExitAlert, setShowFullscreenExitAlert] = useState(false);
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
+  const [showViolationModal, setShowViolationModal] = useState(false);
+  const lastWarningTimeRef = useRef(0);
+
+  const incrementWarningSafe = (reason) => {
+    const now = Date.now();
+    if (now - lastWarningTimeRef.current < 500) {
+      return; // Debounce double triggers within 500ms
+    }
+    lastWarningTimeRef.current = now;
+    
+    setWarningCount(prev => {
+      const next = prev + 1;
+      if (next >= 3) {
+        alert(`Security Alert: ${reason}. Your exam is being automatically submitted.`);
+        exitFullscreen().then(() => handleSubmitSilent());
+      }
+      return next;
+    });
+  };
+
+  const [isFullscreenActive, setIsFullscreenActive] = useState(
+    !!(document.fullscreenElement ||
+       document.webkitFullscreenElement ||
+       document.mozFullScreenElement ||
+       document.msFullscreenElement)
+  );
+  const [isExitedFullscreen, setIsExitedFullscreen] = useState(false);
+
+  const examContainerRef = useRef(null);
+  const isSubmittingRef = useRef(false);
+
+  const warningCountRef = useRef(warningCount);
+  useEffect(() => {
+    warningCountRef.current = warningCount;
+  }, [warningCount]);
+
+  const isFullscreenActiveRef = useRef(isFullscreenActive);
+  useEffect(() => {
+    isFullscreenActiveRef.current = isFullscreenActive;
+  }, [isFullscreenActive]);
+
+  // Lock the user in this screen during verification
+  useEffect(() => {
+    if (isWaitingVerification) {
+      // Push initial history state to intercept the back action
+      window.history.pushState(null, '', window.location.href);
+      
+      const handlePopState = () => {
+        window.history.pushState(null, '', window.location.href);
+        alert('Verification Pending: You cannot leave this page until your teacher scans the QR code and authorizes your submission.');
+      };
+      
+      const handleBeforeUnload = (e) => {
+        e.preventDefault();
+        e.returnValue = 'Verification Pending: If you reload or close this page, you will need to re-verify your submission. Are you sure?';
+        return e.returnValue;
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [isWaitingVerification]);
+
+  // Auto-restore fullscreen on any user click or keypress
+  useEffect(() => {
+    if (!isFullscreenActive) {
+      const handleRestore = () => {
+        startExamFullscreen();
+      };
+      window.addEventListener('keydown', handleRestore);
+      window.addEventListener('click', handleRestore);
+      return () => {
+        window.removeEventListener('keydown', handleRestore);
+        window.removeEventListener('click', handleRestore);
+      };
+    }
+  }, [isFullscreenActive]);
 
   useEffect(() => {
     let interval;
@@ -42,26 +125,7 @@ const TakeExam = () => {
     };
   }, [isWaitingVerification, data, navigate]);
 
-  const [isFullscreenActive, setIsFullscreenActive] = useState(
-    !!(document.fullscreenElement ||
-       document.webkitFullscreenElement ||
-       document.mozFullScreenElement ||
-       document.msFullscreenElement)
-  );
-  const [isExitedFullscreen, setIsExitedFullscreen] = useState(false);
 
-  const examContainerRef = useRef(null);
-  const isSubmittingRef = useRef(false);
-
-  const warningCountRef = useRef(warningCount);
-  useEffect(() => {
-    warningCountRef.current = warningCount;
-  }, [warningCount]);
-
-  const isFullscreenActiveRef = useRef(isFullscreenActive);
-  useEffect(() => {
-    isFullscreenActiveRef.current = isFullscreenActive;
-  }, [isFullscreenActive]);
 
   const startExamFullscreen = async () => {
     if (examContainerRef.current) {
@@ -74,6 +138,15 @@ const TakeExam = () => {
         } else if (element.msRequestFullscreen) {
           await element.msRequestFullscreen();
         }
+        // Attempt Keyboard Lock for Escape, Tab, Alt, etc.
+        if (navigator.keyboard && navigator.keyboard.lock) {
+          try {
+            await navigator.keyboard.lock(["Escape", "Tab"]);
+          } catch (kErr) {
+            console.warn("Keyboard Lock failed:", kErr);
+          }
+        }
+
         setIsFullscreenActive(true);
         setIsExitedFullscreen(false);
       } catch (err) {
@@ -86,6 +159,16 @@ const TakeExam = () => {
 
   const exitFullscreen = async () => {
     document.body.classList.remove('blurred-screen');
+    
+    // Unlock keyboard
+    if (navigator.keyboard && navigator.keyboard.unlock) {
+      try {
+        navigator.keyboard.unlock();
+      } catch (kErr) {
+        console.warn("Keyboard Unlock failed:", kErr);
+      }
+    }
+
     const fsElement = document.fullscreenElement ||
                       document.webkitFullscreenElement ||
                       document.mozFullScreenElement ||
@@ -173,6 +256,37 @@ const TakeExam = () => {
         alert('Developer tools are prohibited during the exam.');
         return false;
       }
+
+      // Escape key (blocks default actions; triggers warning modal inside fullscreen if Keyboard Lock is active)
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isFs = !!(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        );
+        
+        if (isFs && !showViolationModal) {
+          setShowViolationModal(true);
+          incrementWarningSafe('You pressed blocked keys');
+        }
+        return false;
+      }
+
+      // Alt + Shift or Alt + Arrow keys
+      if (e.altKey && (e.shiftKey || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.keyCode === 37 || e.keyCode === 39)) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!showViolationModal) {
+          setShowViolationModal(true);
+          incrementWarningSafe('You pressed blocked keys');
+        }
+        return false;
+      }
     };
     document.addEventListener('keydown', handleKeyDownCapture, true);
 
@@ -180,41 +294,28 @@ const TakeExam = () => {
     const handleVisibilityChange = () => {
       if (isSubmittingRef.current) return;
       if (document.hidden) {
-        setWarningCount(prev => {
-          const next = prev + 1;
-          if (next >= 3) {
-            alert('Security Alert: You left the exam tab multiple times. Your exam is being automatically submitted.');
-            exitFullscreen().then(() => handleSubmitSilent());
-          } else {
-            alert(`Warning ${next}/3: Do not leave the exam screen. Next time your exam will be auto-submitted.`);
-          }
-          return next;
-        });
+        incrementWarningSafe('You left the exam tab');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 4. Monitor fullscreen exit
     const handleFullscreenChange = () => {
-      if (isSubmittingRef.current) return;
       const isFs = !!(
         document.fullscreenElement ||
         document.webkitFullscreenElement ||
         document.mozFullScreenElement ||
         document.msFullscreenElement
       );
+      
+      setIsFullscreenActive(isFs);
+
+      if (isSubmittingRef.current && !isWaitingVerification) return;
 
       if (isFullscreenActiveRef.current && !isFs) {
-        setWarningCount(prev => {
-          const next = prev + 1;
-          if (next >= 3) {
-            alert('Security Alert: You exited fullscreen mode multiple times. Your exam is being automatically submitted.');
-            exitFullscreen().then(() => handleSubmitSilent());
-          } else {
-            setShowFullscreenExitAlert(true);
-          }
-          return next;
-        });
+        if (isWaitingVerification) return; // Skip warning count/alerts during verification
+        setShowViolationModal(false); // Hide the fullscreen violation modal if we went windowed (blocker will cover it)
+        incrementWarningSafe('You exited fullscreen mode');
       }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -265,7 +366,6 @@ const TakeExam = () => {
     if (!data) return;
     try {
       isSubmittingRef.current = true;
-      await exitFullscreen();
       await axios.post(`${API_BASE}/api/student/exams/request-verification`, {
         submissionId: data.submission.id
       });
@@ -292,13 +392,15 @@ const TakeExam = () => {
         
         // Map current answers
         const ansMap = {};
-        res.data.answers.forEach(a => {
-          ansMap[a.question_id] = a.sql_query;
-        });
+        if (res.data.answers && Array.isArray(res.data.answers)) {
+          res.data.answers.forEach(a => {
+            ansMap[a.question_id] = a.sql_query;
+          });
+        }
         setAnswers(ansMap);
 
         // Timer start
-        setTimeLeft(res.data.exam.duration_minutes * 60);
+        setTimeLeft((res.data.exam?.duration_minutes || 0) * 60);
 
         if (res.data.submission.status === 'PendingVerification') {
           setIsWaitingVerification(true);
@@ -345,7 +447,6 @@ const TakeExam = () => {
     try {
       setShowSubmitConfirm(false);
       isSubmittingRef.current = true;
-      await exitFullscreen();
       await axios.post(`${API_BASE}/api/student/exams/request-verification`, {
         submissionId: data.submission.id
       });
@@ -356,16 +457,26 @@ const TakeExam = () => {
     }
   };
 
-  const resumeFullscreenFromAlert = async () => {
-    setShowFullscreenExitAlert(false);
-    await startExamFullscreen();
-  };
 
   const handleSubmit = () => {
     setShowSubmitConfirm(true);
   };
 
   if (loading || !data) return <div className="container mt-4"><div className="skeleton-line" /></div>;
+
+  if (!data.questions || data.questions.length === 0) {
+    return (
+      <div className="container mt-4 text-center">
+        <div className="card glass-card p-5 shadow border-danger" style={{ maxWidth: '500px', margin: '100px auto' }}>
+          <h3 className="text-danger fw-bold mb-3">No Questions Found</h3>
+          <p className="text-muted mb-4">This exam does not have any questions assigned. Please contact your instructor.</p>
+          <button className="btn btn-primary fw-bold" onClick={() => navigate('/student/dashboard')}>
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const currentQuestion = data?.questions?.[currentIdx];
   const formatTime = (seconds) => {
@@ -376,9 +487,46 @@ const TakeExam = () => {
   };
 
   return (
-    <div ref={examContainerRef} className={`fullscreen-exam-container ${isFullscreenActive ? 'is-fullscreen' : ''}`}>
-      {isWaitingVerification ? (
-        <div className="secure-overlay" style={{ zIndex: 9999999 }}>
+    <div ref={examContainerRef} className={`fullscreen-exam-container ${isFullscreenActive ? 'is-fullscreen' : ''}`} style={{ position: 'relative', minHeight: '100vh' }}>
+      {!isFullscreenActive ? (
+        <div 
+          className="secure-overlay" 
+          style={{ zIndex: 9999999, cursor: 'pointer', background: 'rgba(9, 13, 22, 0.98)', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
+          onClick={startExamFullscreen}
+        >
+          {warningCount === 0 ? (
+            <div className="card glass-card p-5 text-center shadow-lg border-primary" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
+              <h3 className="fw-bold mb-3 text-primary">Secure Exam Session</h3>
+              <p className="text-muted mb-4">
+                This secure exam requires fullscreen mode to prevent cheating and browser navigation.
+              </p>
+              <button className="btn btn-primary btn-lg w-100 fw-bold shadow animate-pulse" onClick={startExamFullscreen}>
+                Start Exam
+              </button>
+              <span className="text-muted small d-block mt-3">Or click anywhere on this screen to start</span>
+            </div>
+          ) : (
+            <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }} onClick={(e) => e.stopPropagation()}>
+              <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
+              <p className="text-muted mb-4">
+                You have exited fullscreen mode or pressed a restricted key. You must return to fullscreen mode immediately to resume your exam.
+              </p>
+              {!isWaitingVerification && (
+                <div className="alert alert-danger py-2 mb-4">
+                  <strong className="fs-5 text-danger">Warning {warningCount} / 3</strong>
+                  <br />
+                  <span className="small text-muted">At 3 warnings, your exam will be automatically submitted.</span>
+                </div>
+              )}
+              <button className="btn btn-danger btn-lg w-100 fw-bold shadow animate-pulse" onClick={startExamFullscreen}>
+                Resume Exam
+              </button>
+              <span className="text-muted small d-block mt-3">Or click anywhere on this screen to resume</span>
+            </div>
+          )}
+        </div>
+      ) : isWaitingVerification ? (
+        <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh' }}>
           <div className="card glass-card p-5 text-center shadow-lg border-success" style={{ maxWidth: '500px', borderRadius: '24px' }}>
             <h3 className="fw-bold mb-3 text-success">Verification Required</h3>
             <p className="mb-3 text-muted">
@@ -406,26 +554,9 @@ const TakeExam = () => {
         </div>
       ) : (
         <>
-          {showFullscreenExitAlert && (
-            <div className="secure-overlay" style={{ zIndex: 9999999 }}>
-              <div className="card glass-card p-5 text-center shadow-lg border-warning" style={{ maxWidth: '500px' }}>
-                <h3 className="fw-bold mb-3 text-warning">Secure Mode Warning</h3>
-                <p className="mb-4 text-muted">
-                  You have exited fullscreen mode. You must remain in fullscreen to complete the exam.
-                </p>
-                <div className="alert alert-warning mb-4 py-2">
-                  <strong className="fs-5 text-warning">Warnings: {warningCount} / 3</strong>
-                  <br />
-                  <span className="small text-muted">At 3 warnings, your exam will be automatically submitted.</span>
-                </div>
-                <button className="btn btn-warning btn-lg w-100 fw-bold shadow" onClick={resumeFullscreenFromAlert}>
-                  OK (Return to Fullscreen)
-                </button>
-              </div>
-            </div>
-          )}
+
           {showSubmitConfirm && (
-            <div className="secure-overlay" style={{ zIndex: 9999999 }}>
+            <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh' }}>
               <div className="card glass-card p-5 text-center shadow-lg border-success" style={{ maxWidth: '500px' }}>
                 <h3 className="fw-bold mb-3 text-success">Submit Exam?</h3>
                 <p className="mb-4 text-muted">
@@ -442,22 +573,29 @@ const TakeExam = () => {
               </div>
             </div>
           )}
-          {!isFullscreenActive ? (
-            <div className="secure-overlay">
-              <div className="card glass-card p-5 text-center shadow-lg border-primary" style={{ maxWidth: '450px' }}>
-                <h3 className="fw-bold mb-3 text-primary">Fullscreen Secure Session</h3>
+
+          {showViolationModal && (
+            <div className="secure-overlay" style={{ zIndex: 9999999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh', background: 'rgba(9, 13, 22, 0.95)' }}>
+              <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px', borderRadius: '24px' }}>
+                <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
                 <p className="text-muted mb-4">
-                  This secure exam requires fullscreen mode. Click the button below to enter fullscreen and begin/resume.
+                  You have pressed a restricted key combination (Escape or Alt shortcut). You must return to the exam immediately.
                 </p>
-                <button className="btn btn-primary btn-lg w-100 fw-bold shadow animate-pulse" onClick={startExamFullscreen}>
-                  Enter Fullscreen to Begin
+                <div className="alert alert-danger py-2 mb-4">
+                  <strong className="fs-5 text-danger">Warning {warningCount} / 3</strong>
+                  <br />
+                  <span className="small text-muted">At 3 warnings, your exam will be automatically submitted.</span>
+                </div>
+                <button className="btn btn-danger btn-lg w-100 fw-bold shadow animate-pulse" onClick={() => setShowViolationModal(false)}>
+                  Resume Exam
                 </button>
               </div>
             </div>
-          ) : (
-            <>
+          )}
+          
+          <>
               {isExitedFullscreen && (
-                <div className="secure-overlay">
+                <div className="secure-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', minHeight: '100vh', zIndex: 9999 }}>
                   <div className="card glass-card p-5 text-center shadow-lg border-danger" style={{ maxWidth: '500px' }}>
                     <h3 className="fw-bold mb-3 text-danger">Secure Mode Violation!</h3>
                     <p className="mb-4 text-muted">
@@ -476,6 +614,7 @@ const TakeExam = () => {
               )}
 
               <div className="container mt-4 animated-fade">
+
                 <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
                   <div>
                     <h3 className="fw-bold mb-0">{data.exam.title}</h3>
@@ -535,9 +674,8 @@ const TakeExam = () => {
                 </div>
               </div>
             </>
-          )}
-        </>
-      )}
+          </>
+        )}
     </div>
   );
 };

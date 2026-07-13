@@ -163,7 +163,21 @@ const CreateExam = () => {
                 <h6 className="fw-bold text-primary mb-2">Access & Security Settings</h6>
                 <div className="row mb-2">
                   <div className="col-6">
-                    <label className="form-label small">Start Time</label>
+                    <label className="form-label small d-flex justify-content-between align-items-center">
+                      <span>Start Time</span>
+                      <button 
+                        type="button" 
+                        className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
+                        style={{ fontSize: '0.72rem' }}
+                        onClick={() => {
+                          const now = new Date();
+                          const tzOffset = now.getTimezoneOffset() * 60000;
+                          setStartTime(new Date(now - tzOffset).toISOString().slice(0, 16));
+                        }}
+                      >
+                        ⚡ Today
+                      </button>
+                    </label>
                     <input 
                       type="datetime-local" className="form-control"
                       value={startTime} onChange={e => setStartTime(e.target.value)}
@@ -171,7 +185,22 @@ const CreateExam = () => {
                     />
                   </div>
                   <div className="col-6">
-                    <label className="form-label small">End Time (Expiry)</label>
+                    <label className="form-label small d-flex justify-content-between align-items-center">
+                      <span>End Time (Expiry)</span>
+                      <button 
+                        type="button" 
+                        className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
+                        style={{ fontSize: '0.72rem' }}
+                        onClick={() => {
+                          const baseTime = startTime ? new Date(startTime) : new Date();
+                          const end = new Date(baseTime.getTime() + (duration || 60) * 60000);
+                          const tzOffset = end.getTimezoneOffset() * 60000;
+                          setEndTime(new Date(end - tzOffset).toISOString().slice(0, 16));
+                        }}
+                      >
+                        ⚡ Today
+                      </button>
+                    </label>
                     <input 
                       type="datetime-local" className="form-control"
                       value={endTime} onChange={e => setEndTime(e.target.value)}

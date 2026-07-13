@@ -8,6 +8,6 @@ export default defineConfig({
   ],
   server: {
     host: true,
-    https: true
+    https: false
   }
 })
