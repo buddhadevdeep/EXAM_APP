@@ -19,7 +19,7 @@ const isLocal = Boolean(
 const API_BASE = import.meta.env.VITE_API_URL || (
   isLocal
     ? `http://${window.location.hostname}:5000`
-    : 'https://exam-app-uypv.onrender.com' // Deployed backend URL
+    : 'https://sql-exam-86ta.onrender.com' // Deployed backend URL
 );
 
 export default API_BASE;
