@@ -22,6 +22,8 @@ const TakeExam = () => {
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
   const [showViolationModal, setShowViolationModal] = useState(false);
   const lastWarningTimeRef = useRef(0);
+  const saveTimeoutRef = useRef({});
+  const answersRef = useRef({});
 
   const incrementWarningSafe = (reason) => {
     const now = Date.now();
@@ -366,6 +368,29 @@ const TakeExam = () => {
     if (!data) return;
     try {
       isSubmittingRef.current = true;
+
+      // Clear any pending timeouts
+      for (const qId of Object.keys(saveTimeoutRef.current)) {
+        if (saveTimeoutRef.current[qId]) {
+          clearTimeout(saveTimeoutRef.current[qId]);
+        }
+      }
+
+      // Save current question answer draft immediately to ensure latest is in DB
+      const currentQId = data.questions[currentIdx]?.id;
+      if (currentQId) {
+        const currentVal = answers[currentQId] || '';
+        try {
+          await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
+            submissionId: data.submission.id,
+            questionId: currentQId,
+            sqlQuery: currentVal
+          });
+        } catch (e) {
+          console.error("Error saving final draft on silent submission:", e);
+        }
+      }
+
       await axios.post(`${API_BASE}/api/student/exams/request-verification`, {
         submissionId: data.submission.id
       });
@@ -398,6 +423,7 @@ const TakeExam = () => {
           });
         }
         setAnswers(ansMap);
+        answersRef.current = { ...ansMap };
 
         // Timer start
         setTimeLeft((res.data.exam?.duration_minutes || 0) * 60);
@@ -427,11 +453,12 @@ const TakeExam = () => {
     return () => clearInterval(timer);
   }, [timeLeft, data]);
 
-  const handleQueryChange = async (val) => {
-    const qId = data.questions[currentIdx].id;
-    setAnswers(prev => ({ ...prev, [qId]: val }));
-
-    // Auto save draft to server
+  const flushSave = async (qId) => {
+    if (saveTimeoutRef.current[qId]) {
+      clearTimeout(saveTimeoutRef.current[qId]);
+      delete saveTimeoutRef.current[qId];
+    }
+    const val = answersRef.current[qId] || '';
     try {
       await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
         submissionId: data.submission.id,
@@ -439,14 +466,59 @@ const TakeExam = () => {
         sqlQuery: val
       });
     } catch (err) {
-      console.error('Failed to auto-save draft:', err);
+      console.error('Failed to save draft on flush:', err);
     }
+  };
+
+  const handleQueryChange = (val) => {
+    const qId = data.questions[currentIdx].id;
+    setAnswers(prev => ({ ...prev, [qId]: val }));
+    answersRef.current[qId] = val;
+
+    if (saveTimeoutRef.current[qId]) {
+      clearTimeout(saveTimeoutRef.current[qId]);
+    }
+
+    saveTimeoutRef.current[qId] = setTimeout(async () => {
+      try {
+        await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
+          submissionId: data.submission.id,
+          questionId: qId,
+          sqlQuery: val
+        });
+      } catch (err) {
+        console.error('Failed to auto-save draft:', err);
+      } finally {
+        delete saveTimeoutRef.current[qId];
+      }
+    }, 1000);
   };
 
   const confirmAndSubmit = async () => {
     try {
       setShowSubmitConfirm(false);
       isSubmittingRef.current = true;
+
+      // Clear any pending timeouts
+      for (const qId of Object.keys(saveTimeoutRef.current)) {
+        if (saveTimeoutRef.current[qId]) {
+          clearTimeout(saveTimeoutRef.current[qId]);
+        }
+      }
+
+      // Save current question answer draft immediately to ensure latest is in DB
+      const currentQId = data.questions[currentIdx].id;
+      const currentVal = answersRef.current[currentQId] || '';
+      try {
+        await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
+          submissionId: data.submission.id,
+          questionId: currentQId,
+          sqlQuery: currentVal
+        });
+      } catch (e) {
+        console.error("Error saving final draft:", e);
+      }
+
       await axios.post(`${API_BASE}/api/student/exams/request-verification`, {
         submissionId: data.submission.id
       });
@@ -649,7 +721,10 @@ const TakeExam = () => {
                       <button 
                         className="btn btn-outline-secondary d-flex align-items-center gap-1"
                         disabled={currentIdx === 0}
-                        onClick={() => setCurrentIdx(prev => prev - 1)}
+                        onClick={async () => {
+                          await flushSave(currentQuestion.id);
+                          setCurrentIdx(prev => prev - 1);
+                        }}
                       >
                         <FaChevronLeft /> Prev
                       </button>
@@ -657,7 +732,10 @@ const TakeExam = () => {
                       {currentIdx < data.questions.length - 1 ? (
                         <button 
                           className="btn btn-outline-secondary d-flex align-items-center gap-1"
-                          onClick={() => setCurrentIdx(prev => prev + 1)}
+                          onClick={async () => {
+                            await flushSave(currentQuestion.id);
+                            setCurrentIdx(prev => prev + 1);
+                          }}
                         >
                           Next <FaChevronRight />
                         </button>

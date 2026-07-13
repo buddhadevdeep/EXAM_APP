@@ -88,6 +88,12 @@ const CreateExam = () => {
       }
     }
 
+    const toUTCString = (dateTimeLocalStr) => {
+      if (!dateTimeLocalStr) return null;
+      const d = new Date(dateTimeLocalStr);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+
     try {
       await axios.post(`${API_BASE}/api/teacher/exams`, {
         subjectId: parseInt(subjectId),
@@ -97,8 +103,8 @@ const CreateExam = () => {
         durationMinutes: parseInt(duration),
         questionIds: selectedQuestions,
         accessCode: accessCode || null,
-        startTime: startTime || null,
-        endTime: endTime || null
+        startTime: toUTCString(startTime),
+        endTime: toUTCString(endTime)
       });
       navigate('/teacher/dashboard');
     } catch (err) {

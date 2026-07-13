@@ -122,6 +122,12 @@ const EditExam = () => {
       }
     }
 
+    const toUTCString = (dateTimeLocalStr) => {
+      if (!dateTimeLocalStr) return null;
+      const d = new Date(dateTimeLocalStr);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+
     try {
       await axios.put(`${API_BASE}/api/teacher/exams/${examId}`, {
         subjectId: parseInt(subjectId),
@@ -131,8 +137,8 @@ const EditExam = () => {
         durationMinutes: parseInt(duration),
         questionIds: selectedQuestions,
         accessCode,
-        startTime: startTime || null,
-        endTime: endTime || null
+        startTime: toUTCString(startTime),
+        endTime: toUTCString(endTime)
       });
       alert('Exam updated successfully!');
       navigate('/teacher/dashboard');
