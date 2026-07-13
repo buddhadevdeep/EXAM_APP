@@ -60,28 +60,16 @@ const Submissions = () => {
                   </td>
                   <td>
                     {sub.submitted_at ? (() => {
-                      const parts = sub.submitted_at.split(/[-T:. ]/);
-                      if (parts.length >= 6) {
-                        const localDate = new Date(
-                          parseInt(parts[0]),
-                          parseInt(parts[1]) - 1,
-                          parseInt(parts[2]),
-                          parseInt(parts[3]),
-                          parseInt(parts[4]),
-                          parseInt(parts[5])
-                        );
-                        return localDate.toLocaleString('en-US', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true
-                        });
-                      }
                       const d = new Date(sub.submitted_at);
-                      return isNaN(d.getTime()) ? sub.submitted_at : d.toLocaleString();
+                      return isNaN(d.getTime()) ? sub.submitted_at : d.toLocaleString('en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                      });
                     })() : 'Not submitted yet'}
                   </td>
                   <td>

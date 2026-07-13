@@ -58,9 +58,19 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 const AppLayout = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const location = useLocation();
+  
+  if (loading) {
+    return (
+      <div className="d-flex align-items-center justify-content-center min-vh-100">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
   
   if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
 
