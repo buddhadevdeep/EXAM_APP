@@ -83,11 +83,16 @@ const StudentDashboard = () => {
             <div className="card glass-card p-4 h-100 d-flex flex-column">
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-2">
                 <span className="badge bg-secondary text-wrap" style={{ maxWidth: '100%' }}>{exam.subject_name}</span>
-                {exam.access_code && (
-                  <span className="badge bg-danger d-flex align-items-center gap-1 text-wrap">
-                    <FaLock size={10} /> Secure Code Req.
-                  </span>
-                )}
+                <div className="d-flex gap-1 flex-wrap">
+                  {(!exam.submission_status || exam.submission_status === 'Draft') && (
+                    <span className="badge bg-danger text-wrap">Absent</span>
+                  )}
+                  {exam.access_code && (
+                    <span className="badge bg-danger d-flex align-items-center gap-1 text-wrap">
+                      <FaLock size={10} /> Secure Code Req.
+                    </span>
+                  )}
+                </div>
               </div>
               <h5 className="fw-bold">{exam.title}</h5>
               <p className="text-muted small flex-grow-1">{exam.description}</p>

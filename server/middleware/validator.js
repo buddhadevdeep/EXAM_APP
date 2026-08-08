@@ -35,7 +35,8 @@ const examRules = [
   body('title').notEmpty().withMessage('Exam Title is required'),
   body('totalMarks').isInt({ min: 1 }).withMessage('Total Marks must be positive'),
   body('durationMinutes').isInt({ min: 1 }).withMessage('Duration must be positive'),
-  body('questionIds').isArray({ min: 1 }).withMessage('At least one question must be selected')
+  body('questionIds').isArray({ min: 1 }).withMessage('At least one question must be selected'),
+  body('allowedRollNumbers').optional().isArray().withMessage('Allowed roll numbers must be an array')
 ];
 
 module.exports = {

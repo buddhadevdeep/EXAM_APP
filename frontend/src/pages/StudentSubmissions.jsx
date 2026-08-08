@@ -59,8 +59,8 @@ const StudentSubmissions = () => {
                     })() : 'N/A'}
                   </td>
                   <td>
-                    <span className={`status-badge ${sub.status === 'Graded' ? 'bg-success text-white' : 'bg-primary text-white'}`}>
-                      {sub.status}
+                    <span className={`status-badge ${sub.status === 'Graded' ? 'bg-success text-white' : sub.status === 'Draft' ? 'bg-danger text-white' : 'bg-primary text-white'}`}>
+                      {sub.status === 'Draft' ? 'Absent' : sub.status}
                     </span>
                   </td>
                   <td>
@@ -68,6 +68,8 @@ const StudentSubmissions = () => {
                       <span className="fw-bold text-success">
                         {sub.marks_obtained !== null ? parseFloat(sub.marks_obtained) : 0} / {sub.total_marks}
                       </span>
+                    ) : sub.status === 'Draft' ? (
+                      <span className="text-danger small fw-bold">Absent</span>
                     ) : (
                       <span className="text-muted small">Grading Pending</span>
                     )}

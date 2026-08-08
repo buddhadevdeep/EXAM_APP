@@ -18,6 +18,9 @@ const CreateExam = () => {
   const [endTime, setEndTime] = useState('');
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [allowedRollNumbers, setAllowedRollNumbers] = useState([]);
+  const [rollNumberInput, setRollNumberInput] = useState('');
+  const [databaseSchema, setDatabaseSchema] = useState('');
   
   // Custom Question Form State
   const [customTitle, setCustomTitle] = useState('');
@@ -26,6 +29,28 @@ const CreateExam = () => {
   const [customSql, setCustomSql] = useState('');
 
   const navigate = useNavigate();
+
+  const handleAddRollNumber = () => {
+    const trimmed = rollNumberInput.trim();
+    if (!trimmed) return;
+    if (allowedRollNumbers.includes(trimmed)) {
+      alert(`Roll number "${trimmed}" is already added!`);
+      return;
+    }
+    setAllowedRollNumbers([...allowedRollNumbers, trimmed]);
+    setRollNumberInput('');
+  };
+
+  const handleRemoveRollNumber = (rollNum) => {
+    setAllowedRollNumbers(allowedRollNumbers.filter(r => r !== rollNum));
+  };
+
+  const handleRollNumberKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddRollNumber();
+    }
+  };
 
   const getMinDateTimeString = () => {
     const now = new Date();
@@ -104,7 +129,9 @@ const CreateExam = () => {
         questionIds: selectedQuestions,
         accessCode: accessCode || null,
         startTime: toUTCString(startTime),
-        endTime: toUTCString(endTime)
+        endTime: toUTCString(endTime),
+        allowedRollNumbers: allowedRollNumbers,
+        databaseSchema: databaseSchema
       });
       navigate('/teacher/dashboard');
     } catch (err) {
@@ -145,6 +172,17 @@ const CreateExam = () => {
                 <textarea 
                   className="form-control" rows="3" required value={description}
                   onChange={e => setDescription(e.target.value)}
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Database Schema / Table Structures (Optional)</label>
+                <textarea 
+                  className="form-control font-monospace" rows="5" 
+                  placeholder="e.g. CREATE TABLE users (id INT, name VARCHAR(50));"
+                  value={databaseSchema}
+                  onChange={e => setDatabaseSchema(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
                 />
               </div>
 
@@ -220,6 +258,43 @@ const CreateExam = () => {
                     type="text" className="form-control" placeholder="e.g. SQLTEST2026" required
                     value={accessCode} onChange={e => setAccessCode(e.target.value)}
                   />
+                </div>
+
+                <div className="mt-3">
+                  <label className="form-label small">Restrict to Roll Numbers (Optional)</label>
+                  <div className="input-group mb-2">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. ROLL123"
+                      value={rollNumberInput}
+                      onChange={e => setRollNumberInput(e.target.value)}
+                      onKeyDown={handleRollNumberKeyDown}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={handleAddRollNumber}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                    {allowedRollNumbers.map(rollNum => (
+                      <span key={rollNum} className="badge bg-primary d-flex align-items-center gap-2 px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '12px' }}>
+                        {rollNum}
+                        <button
+                          type="button"
+                          className="btn-close btn-close-white"
+                          style={{ width: '0.4em', height: '0.4em', padding: 0 }}
+                          onClick={() => handleRemoveRollNumber(rollNum)}
+                        />
+                      </span>
+                    ))}
+                  </div>
+                  <small className="text-muted d-block mt-1" style={{ fontSize: '0.72rem' }}>
+                    If left empty, all students can take the exam. Press Enter or comma to add.
+                  </small>
                 </div>
               </div>
 

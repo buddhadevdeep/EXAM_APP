@@ -21,6 +21,7 @@ const TakeExam = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
   const [showViolationModal, setShowViolationModal] = useState(false);
+  const [showSchema, setShowSchema] = useState(false);
   const lastWarningTimeRef = useRef(0);
   const saveTimeoutRef = useRef({});
   const answersRef = useRef({});
@@ -191,12 +192,17 @@ const TakeExam = () => {
   // Anti-cheating listeners (screenshot blocking + tab leave monitor)
   useEffect(() => {
     // 1. Prevent copy/paste/context menu on the main page wrapper
+    const handleCopyCut = (e) => {
+      e.preventDefault();
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', 'Copying is disabled during this exam.');
+      }
+    };
     const preventDefaults = (e) => {
       e.preventDefault();
-      alert('Action blocked due to active exam security policies.');
     };
-    document.addEventListener('copy', preventDefaults);
-    document.addEventListener('cut', preventDefaults);
+    document.addEventListener('copy', handleCopyCut);
+    document.addEventListener('cut', handleCopyCut);
     document.addEventListener('contextmenu', preventDefaults);
 
     // 2. Keydown interception in capture phase to block screenshots, ctrl+s, etc.
@@ -348,8 +354,8 @@ const TakeExam = () => {
     window.addEventListener('focus', handleWindowFocus);
 
     return () => {
-      document.removeEventListener('copy', preventDefaults);
-      document.removeEventListener('cut', preventDefaults);
+      document.removeEventListener('copy', handleCopyCut);
+      document.removeEventListener('cut', handleCopyCut);
       document.removeEventListener('contextmenu', preventDefaults);
       document.removeEventListener('keydown', handleKeyDownCapture, true);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -707,6 +713,24 @@ const TakeExam = () => {
                       <h5 className="fw-bold">{currentQuestion.title}</h5>
                       <p className="text-muted" style={{ whiteSpace: 'pre-line' }}>{currentQuestion.description}</p>
                     </div>
+
+                    {data.exam.database_schema && (
+                      <div className="card glass-card p-3 mb-4 border-info">
+                        <div className="d-flex justify-content-between align-items-center" onClick={() => setShowSchema(!showSchema)} style={{ cursor: 'pointer' }}>
+                          <h6 className="fw-bold mb-0 text-info">📋 Database Schema / Table Reference</h6>
+                          <button type="button" className="btn btn-sm btn-link text-info p-0 text-decoration-none fw-bold" style={{ fontSize: '0.8rem' }}>
+                            {showSchema ? 'Hide ▲' : 'Show ▼'}
+                          </button>
+                        </div>
+                        {showSchema && (
+                          <div className="mt-3 border-top pt-3">
+                            <pre className="p-2 rounded bg-light font-monospace text-dark mb-0" style={{ fontSize: '0.82rem', maxHeight: '250px', overflowY: 'auto', whiteSpace: 'pre-wrap', border: '1px solid #dee2e6' }}>
+                              {data.exam.database_schema}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <SmartHints sqlQuery={answers[currentQuestion.id] || ''} />
                   </div>

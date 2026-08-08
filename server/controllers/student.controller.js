@@ -20,9 +20,17 @@ exports.getAvailableExams = async (req, res, next) => {
       ]
     }).lean();
 
-    const subjectIds = exams.map(e => e.subject_id);
-    const teacherIds = exams.map(e => e.teacher_id);
-    const examIds = exams.map(e => e._id);
+    // Filter exams based on allowed roll numbers list
+    const filteredExams = exams.filter(e => {
+      if (!e.allowed_roll_numbers || e.allowed_roll_numbers.length === 0) {
+        return true;
+      }
+      return e.allowed_roll_numbers.includes(student.roll_number);
+    });
+
+    const subjectIds = filteredExams.map(e => e.subject_id);
+    const teacherIds = filteredExams.map(e => e.teacher_id);
+    const examIds = filteredExams.map(e => e._id);
 
     const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
     const teachers = await MongoTeacher.find({ _id: { $in: teacherIds } }).lean();
@@ -32,7 +40,7 @@ exports.getAvailableExams = async (req, res, next) => {
     const teacherMap = new Map(teachers.map(t => [t._id, t.full_name]));
     const submissionMap = new Map(submissions.map(sub => [sub.exam_id, sub]));
 
-    const mappedResult = exams.map(e => {
+    const mappedResult = filteredExams.map(e => {
       const sub = submissionMap.get(e._id);
       return {
         ...e,
@@ -64,6 +72,13 @@ exports.getExamDetails = async (req, res, next) => {
     const student = await Student.findByUserId(req.user.id);
     if (!student) {
       return res.status(404).json({ message: 'Student profile not found.' });
+    }
+
+    // Check if exam restricts access to specific roll numbers
+    if (exam.allowed_roll_numbers && exam.allowed_roll_numbers.length > 0) {
+      if (!exam.allowed_roll_numbers.includes(student.roll_number)) {
+        return res.status(403).json({ message: 'You are not authorized to take this exam. Access is restricted to specific roll numbers.' });
+      }
     }
 
     // Verify timeline bounds

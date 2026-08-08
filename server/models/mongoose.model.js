@@ -120,6 +120,8 @@ const ExamSchema = new mongoose.Schema({
   access_code: { type: String, default: null },
   start_time: { type: Date, default: null },
   end_time: { type: Date, default: null },
+  allowed_roll_numbers: { type: [String], default: [] },
+  database_schema: { type: String, default: '' },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
@@ -155,7 +157,7 @@ const SubmissionAnswerSchema = new mongoose.Schema({
   _id: Number,
   submission_id: { type: Number, required: true },
   question_id: { type: Number, required: true },
-  sql_query: { type: String, required: true },
+  sql_query: { type: String, default: '' },
   submitted_at: { type: Date, default: Date.now }
 });
 SubmissionAnswerSchema.index({ submission_id: 1, question_id: 1 }, { unique: true });

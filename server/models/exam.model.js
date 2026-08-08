@@ -51,7 +51,7 @@ class Question {
 }
 
 class Exam {
-  static async create({ teacherId, subjectId, title, description, totalMarks, durationMinutes, accessCode = null, startTime = null, endTime = null }) {
+  static async create({ teacherId, subjectId, title, description, totalMarks, durationMinutes, accessCode = null, startTime = null, endTime = null, allowedRollNumbers = [], databaseSchema = '' }) {
     const nextId = await getNextSequenceValue('exams');
     const exam = await MongoExam.create({
       _id: nextId,
@@ -63,7 +63,9 @@ class Exam {
       duration_minutes: durationMinutes,
       access_code: accessCode,
       start_time: startTime ? new Date(startTime) : null,
-      end_time: endTime ? new Date(endTime) : null
+      end_time: endTime ? new Date(endTime) : null,
+      allowed_roll_numbers: allowedRollNumbers,
+      database_schema: databaseSchema
     });
     return exam._id;
   }
@@ -127,7 +129,7 @@ class Exam {
 
   static async update(id, updates) {
     const updateObj = {};
-    const fields = ['subject_id', 'title', 'description', 'total_marks', 'duration_minutes', 'is_published', 'is_closed', 'access_code', 'start_time', 'end_time'];
+    const fields = ['subject_id', 'title', 'description', 'total_marks', 'duration_minutes', 'is_published', 'is_closed', 'access_code', 'start_time', 'end_time', 'allowed_roll_numbers', 'database_schema'];
     fields.forEach(f => {
       if (updates[f] !== undefined) {
         if ((f === 'start_time' || f === 'end_time')) {
