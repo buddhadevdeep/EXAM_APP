@@ -459,21 +459,19 @@ const TakeExam = () => {
     return () => clearInterval(timer);
   }, [timeLeft, data]);
 
-  const flushSave = async (qId) => {
+  const flushSave = (qId) => {
     if (saveTimeoutRef.current[qId]) {
       clearTimeout(saveTimeoutRef.current[qId]);
       delete saveTimeoutRef.current[qId];
     }
     const val = answersRef.current[qId] || '';
-    try {
-      await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
-        submissionId: data.submission.id,
-        questionId: qId,
-        sqlQuery: val
-      });
-    } catch (err) {
-      console.error('Failed to save draft on flush:', err);
-    }
+    axios.post(`${API_BASE}/api/student/exams/save-draft`, {
+      submissionId: data.submission.id,
+      questionId: qId,
+      sqlQuery: val
+    }).catch(err => {
+      console.error('Failed to save draft on flush (bg):', err);
+    });
   };
 
   const handleQueryChange = (val) => {
@@ -745,8 +743,8 @@ const TakeExam = () => {
                       <button 
                         className="btn btn-outline-secondary d-flex align-items-center gap-1"
                         disabled={currentIdx === 0}
-                        onClick={async () => {
-                          await flushSave(currentQuestion.id);
+                        onClick={() => {
+                          flushSave(currentQuestion.id);
                           setCurrentIdx(prev => prev - 1);
                         }}
                       >
@@ -756,8 +754,8 @@ const TakeExam = () => {
                       {currentIdx < data.questions.length - 1 ? (
                         <button 
                           className="btn btn-outline-secondary d-flex align-items-center gap-1"
-                          onClick={async () => {
-                            await flushSave(currentQuestion.id);
+                          onClick={() => {
+                            flushSave(currentQuestion.id);
                             setCurrentIdx(prev => prev + 1);
                           }}
                         >

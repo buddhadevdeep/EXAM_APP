@@ -117,8 +117,10 @@ class Exam {
   static async getById(id) {
     const exam = await MongoExam.findById(id).lean();
     if (!exam) return null;
-    const teacher = await MongoTeacher.findById(exam.teacher_id).lean();
-    const subject = await MongoSubject.findById(exam.subject_id).lean();
+    const [teacher, subject] = await Promise.all([
+      MongoTeacher.findById(exam.teacher_id).lean(),
+      MongoSubject.findById(exam.subject_id).lean()
+    ]);
     return {
       ...exam,
       id: exam._id,
@@ -170,12 +172,12 @@ class Submission {
   }
 
   static async saveAnswer(submissionId, questionId, sqlQuery) {
-    let answer = await MongoSubmissionAnswer.findOne({ submission_id: submissionId, question_id: questionId });
-    if (answer) {
-      answer.sql_query = sqlQuery;
-      answer.submitted_at = Date.now();
-      await answer.save();
-    } else {
+    const updated = await MongoSubmissionAnswer.findOneAndUpdate(
+      { submission_id: submissionId, question_id: questionId },
+      { $set: { sql_query: sqlQuery, submitted_at: new Date() } },
+      { new: true }
+    );
+    if (!updated) {
       const nextId = await getNextSequenceValue('submission_answers');
       await MongoSubmissionAnswer.create({
         _id: nextId,

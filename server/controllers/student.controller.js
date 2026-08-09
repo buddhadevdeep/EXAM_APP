@@ -32,9 +32,11 @@ exports.getAvailableExams = async (req, res, next) => {
     const teacherIds = filteredExams.map(e => e.teacher_id);
     const examIds = filteredExams.map(e => e._id);
 
-    const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
-    const teachers = await MongoTeacher.find({ _id: { $in: teacherIds } }).lean();
-    const submissions = await MongoSubmission.find({ exam_id: { $in: examIds }, student_id: student.id }).lean();
+    const [subjects, teachers, submissions] = await Promise.all([
+      MongoSubject.find({ _id: { $in: subjectIds } }).lean(),
+      MongoTeacher.find({ _id: { $in: teacherIds } }).lean(),
+      MongoSubmission.find({ exam_id: { $in: examIds }, student_id: student.id }).lean()
+    ]);
 
     const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
     const teacherMap = new Map(teachers.map(t => [t._id, t.full_name]));
@@ -61,7 +63,14 @@ exports.getAvailableExams = async (req, res, next) => {
 exports.getExamDetails = async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const exam = await Exam.getById(examId);
+    
+    // Fetch non-dependent data in parallel
+    const [exam, student, questions] = await Promise.all([
+      Exam.getById(examId),
+      Student.findByUserId(req.user.id),
+      Exam.getExamQuestions(examId)
+    ]);
+
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found.' });
     }
@@ -69,7 +78,6 @@ exports.getExamDetails = async (req, res, next) => {
       return res.status(403).json({ message: 'This exam is not active or has been unpublished.' });
     }
 
-    const student = await Student.findByUserId(req.user.id);
     if (!student) {
       return res.status(404).json({ message: 'Student profile not found.' });
     }
@@ -100,7 +108,6 @@ exports.getExamDetails = async (req, res, next) => {
     const submission = await Submission.createDraftOrGet(student.id, examId);
 
     // If final submission is already done, return answers too
-    const questions = await Exam.getExamQuestions(examId);
     const answers = await Submission.getAnswers(submission.id);
 
     return res.status(200).json({
@@ -147,7 +154,9 @@ exports.submitExam = async (req, res, next) => {
     }
 
     await Submission.submitExam(submissionId);
-    await UtilityModel.logActivity(req.user.id, 'Exam Submission', `Submitted exam for submission ID ${submissionId}`);
+    UtilityModel.logActivity(req.user.id, 'Exam Submission', `Submitted exam for submission ID ${submissionId}`).catch(err => {
+      console.error('Failed to log activity in background:', err.message);
+    });
 
     return res.status(200).json({ message: 'Exam submitted successfully!' });
   } catch (error) {
@@ -195,7 +204,9 @@ exports.requestVerification = async (req, res, next) => {
     submission.status = 'PendingVerification';
     await submission.save();
 
-    await UtilityModel.logActivity(req.user.id, 'Exam Verification Requested', `Requested QR verification for submission ID ${submissionId}`);
+    UtilityModel.logActivity(req.user.id, 'Exam Verification Requested', `Requested QR verification for submission ID ${submissionId}`).catch(err => {
+      console.error('Failed to log activity in background:', err.message);
+    });
 
     return res.status(200).json({ message: 'Verification requested. Please present the QR code to your teacher.' });
   } catch (error) {

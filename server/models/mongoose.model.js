@@ -128,6 +128,7 @@ const ExamSchema = new mongoose.Schema({
 ExamSchema.pre('save', function() {
   this.updated_at = Date.now();
 });
+ExamSchema.index({ is_published: 1, is_closed: 1, end_time: 1 });
 const Exam = mongoose.model('Exam', ExamSchema);
 
 // ExamQuestion Schema
@@ -195,6 +196,7 @@ const NotificationSchema = new mongoose.Schema({
   is_read: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now }
 });
+NotificationSchema.index({ user_id: 1, created_at: -1 });
 const Notification = mongoose.model('Notification', NotificationSchema);
 
 // ActivityLog Schema
@@ -206,6 +208,7 @@ const ActivityLogSchema = new mongoose.Schema({
   ip_address: { type: String, default: null },
   created_at: { type: Date, default: Date.now }
 });
+ActivityLogSchema.index({ created_at: -1 });
 const ActivityLog = mongoose.model('ActivityLog', ActivityLogSchema);
 
 // Setting Schema

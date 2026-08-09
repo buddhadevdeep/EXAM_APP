@@ -14,22 +14,22 @@ class User {
   static async findById(id) {
     const user = await MongoUser.findById(id).lean();
     if (!user) return null;
-    const role = await MongoRole.findById(user.role_id).lean();
+    const roleName = user.role_id === 1 ? 'Admin' : (user.role_id === 2 ? 'Teacher' : 'Student');
     return {
       ...user,
       id: user._id,
-      role_name: role ? role.name : (user.role_id === 1 ? 'Admin' : (user.role_id === 2 ? 'Teacher' : 'Student'))
+      role_name: roleName
     };
   }
 
   static async findByEmail(email) {
     const user = await MongoUser.findOne({ email }).lean();
     if (!user) return null;
-    const role = await MongoRole.findById(user.role_id).lean();
+    const roleName = user.role_id === 1 ? 'Admin' : (user.role_id === 2 ? 'Teacher' : 'Student');
     return {
       ...user,
       id: user._id,
-      role_name: role ? role.name : (user.role_id === 1 ? 'Admin' : (user.role_id === 2 ? 'Teacher' : 'Student'))
+      role_name: roleName
     };
   }
 
