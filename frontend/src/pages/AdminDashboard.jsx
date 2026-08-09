@@ -4,18 +4,20 @@ import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { FaUsers, FaFolderOpen, FaGraduationCap, FaDownload, FaSyncAlt } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const AdminDashboard = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { cachedAdminStats, setCachedAdminStats } = useAuth();
+  const [data, setData] = useState(cachedAdminStats || null);
+  const [loading, setLoading] = useState(!cachedAdminStats);
 
   const fetchStats = async () => {
-    setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/api/admin/analytics`);
       setData(res.data);
+      setCachedAdminStats(res.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -66,8 +68,8 @@ const AdminDashboard = () => {
         <h3 className="fw-bold mb-0">Platform Admin Analytics</h3>
         <div className="d-flex flex-wrap gap-2">
           <button className="btn btn-outline-primary" onClick={fetchStats}><FaSyncAlt /> Sync</button>
-          <a href="${API_BASE}/api/admin/reports/pdf" className="btn btn-primary"><FaDownload /> PDF</a>
-          <a href="${API_BASE}/api/admin/reports/excel" className="btn btn-success"><FaDownload /> Excel</a>
+          <a href={`${API_BASE}/api/admin/reports/pdf`} className="btn btn-primary"><FaDownload /> PDF</a>
+          <a href={`${API_BASE}/api/admin/reports/excel`} className="btn btn-success"><FaDownload /> Excel</a>
         </div>
       </div>
 

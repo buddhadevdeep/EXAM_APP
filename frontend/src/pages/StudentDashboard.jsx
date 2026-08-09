@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaPlay, FaCheckCircle, FaExclamationCircle, FaLock } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const StudentDashboard = () => {
-  const [exams, setExams] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { cachedExams, setCachedExams } = useAuth();
+  const [exams, setExams] = useState(cachedExams || []);
+  const [loading, setLoading] = useState(!cachedExams);
   const navigate = useNavigate();
 
   // Custom Modal States
@@ -20,6 +22,7 @@ const StudentDashboard = () => {
       try {
         const res = await axios.get(`${API_BASE}/api/student/exams`);
         setExams(res.data);
+        setCachedExams(res.data);
       } catch (err) {
         console.error(err);
       } finally {

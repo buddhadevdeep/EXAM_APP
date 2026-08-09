@@ -9,6 +9,10 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [loading, setLoading] = useState(true);
+  const [cachedExams, setCachedExams] = useState(null);
+  const [cachedSubmissions, setCachedSubmissions] = useState(null);
+  const [cachedTeacherExams, setCachedTeacherExams] = useState(null);
+  const [cachedAdminStats, setCachedAdminStats] = useState(null);
 
   // Setup default headers
   if (token) {
@@ -92,6 +96,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
+      setCachedExams(null);
+      setCachedSubmissions(null);
+      setCachedTeacherExams(null);
+      setCachedAdminStats(null);
       delete axios.defaults.headers.common['Authorization'];
     }
   };
@@ -99,7 +107,13 @@ export const AuthProvider = ({ children }) => {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, darkMode, login, logout, toggleTheme, setUser }}>
+    <AuthContext.Provider value={{
+      user, token, loading, darkMode, login, logout, toggleTheme, setUser,
+      cachedExams, setCachedExams,
+      cachedSubmissions, setCachedSubmissions,
+      cachedTeacherExams, setCachedTeacherExams,
+      cachedAdminStats, setCachedAdminStats
+    }}>
       {children}
     </AuthContext.Provider>
   );

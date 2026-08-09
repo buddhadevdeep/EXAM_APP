@@ -3,15 +3,18 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaPlus, FaCheck, FaTimes, FaDownload, FaCamera } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const TeacherDashboard = () => {
-  const [exams, setExams] = useState([]);
-  const [loading, setLoading] = useState(true);;
+  const { cachedTeacherExams, setCachedTeacherExams } = useAuth();
+  const [exams, setExams] = useState(cachedTeacherExams || []);
+  const [loading, setLoading] = useState(!cachedTeacherExams);
 
   const fetchExams = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/teacher/exams`);
       setExams(res.data);
+      setCachedTeacherExams(res.data);
     } catch (err) {
       console.error(err);
     } finally {

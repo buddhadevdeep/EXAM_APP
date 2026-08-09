@@ -2,16 +2,19 @@ import API_BASE from '../config/api.js';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaGraduationCap, FaRegCommentDots } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const StudentSubmissions = () => {
-  const [submissions, setSubmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { cachedSubmissions, setCachedSubmissions } = useAuth();
+  const [submissions, setSubmissions] = useState(cachedSubmissions || []);
+  const [loading, setLoading] = useState(!cachedSubmissions);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
         const res = await axios.get(`${API_BASE}/api/student/submissions`);
         setSubmissions(res.data);
+        setCachedSubmissions(res.data);
       } catch (err) {
         console.error(err);
       } finally {
