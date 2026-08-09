@@ -54,8 +54,13 @@ const Submissions = () => {
                   <td>{sub.roll_number}</td>
                   <td>{sub.class_section}</td>
                   <td>
-                    <span className={`status-badge ${sub.status === 'Graded' ? 'bg-success text-white' : sub.status === 'Submitted' ? 'bg-primary text-white' : 'bg-warning text-dark'}`}>
-                      {sub.status}
+                    <span className={`status-badge ${
+                      sub.status === 'Graded' ? 'bg-success text-white' :
+                      sub.status === 'Submitted' ? 'bg-primary text-white' :
+                      sub.status === 'Draft' ? 'bg-warning text-dark' :
+                      sub.status === 'Not Started' ? 'bg-secondary text-white' : 'bg-light text-dark'
+                    }`}>
+                      {sub.status === 'Draft' ? 'In Progress' : sub.status}
                     </span>
                   </td>
                   <td>
@@ -70,15 +75,17 @@ const Submissions = () => {
                         second: '2-digit',
                         hour12: true
                       });
-                    })() : 'Not submitted yet'}
+                    })() : sub.status === 'Draft' ? 'In progress' : 'Not started yet'}
                   </td>
                   <td>
-                    {sub.status !== 'Draft' ? (
+                    {(sub.status === 'Submitted' || sub.status === 'Graded') ? (
                       <Link to={`/teacher/submissions/${sub.id}`} className="btn btn-sm btn-primary d-flex align-items-center gap-1" style={{ width: 'max-content' }}>
                         <FaClipboardList /> {sub.status === 'Graded' ? 'Edit Grades' : 'Review & Grade'}
                       </Link>
+                    ) : sub.status === 'Draft' ? (
+                      <span className="text-muted small fw-medium">In Progress</span>
                     ) : (
-                      <span className="text-muted small">In Progress</span>
+                      <span className="text-muted small fw-medium">Not Started</span>
                     )}
                   </td>
                 </tr>

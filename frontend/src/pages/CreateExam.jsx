@@ -22,6 +22,7 @@ const CreateExam = () => {
   const [rollNumberInput, setRollNumberInput] = useState('');
   const [databaseSchema, setDatabaseSchema] = useState('');
   const [students, setStudents] = useState([]);
+  const [step, setStep] = useState(1);
   
   // Custom Question Form State
   const [customTitle, setCustomTitle] = useState('');
@@ -30,6 +31,35 @@ const CreateExam = () => {
   const [customSql, setCustomSql] = useState('');
 
   const navigate = useNavigate();
+
+  const validateStep1 = () => {
+    if (!subjectId) { alert('Please select a subject'); return false; }
+    if (!title.trim()) { alert('Please enter an exam title'); return false; }
+    if (!description.trim()) { alert('Please enter exam instructions'); return false; }
+    if (!duration) { alert('Please enter a valid duration'); return false; }
+    if (!totalMarks) { alert('Please enter total marks'); return false; }
+    if (!accessCode.trim()) { alert('Please enter an exam passcode'); return false; }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (endTime) {
+      const end = new Date(endTime);
+      if (end <= new Date()) {
+        alert('End Time (Expiry) must be in the future.');
+        return false;
+      }
+    }
+    if (startTime && endTime) {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      if (end <= start) {
+        alert('End Time (Expiry) must be after Start Time.');
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleAddRollNumber = () => {
     const inputs = rollNumberInput.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
@@ -175,351 +205,464 @@ const CreateExam = () => {
 
   return (
     <div className="container mt-4 animated-fade">
-      <h3 className="fw-bold mb-4">Design SQL Exam</h3>
-      
-      <div className="row">
-        <div className="col-md-5 mb-4">
-          <div className="card glass-card p-4">
-            <h5 className="fw-bold mb-3">Exam Configuration</h5>
-            <form onSubmit={handleSave}>
-              <div className="mb-3">
-                <label className="form-label">Subject</label>
+      {/* Page Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+          <h3 className="fw-bold mb-0 text-gradient text-uppercase">Design SQL Exam</h3>
+          <p className="text-muted small mb-0">Create new SQL assessment and assign questions</p>
+        </div>
+      </div>
+
+      {/* Stepper Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 bg-white p-3 shadow-sm" style={{ borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="d-flex align-items-center gap-2 cursor-pointer" onClick={() => step > 1 && setStep(1)}>
+          <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
+            step === 1 ? 'bg-primary text-white shadow-sm scale-up' : step > 1 ? 'bg-success text-white' : 'bg-light text-muted'
+          }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
+            {step > 1 ? '✓' : '1'}
+          </div>
+          <span className={`small fw-bold ${step === 1 ? 'text-primary' : 'text-muted'}`}>1. Exam Profile</span>
+        </div>
+        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed" style={{ opacity: 0.5 }} />
+        <div className="d-flex align-items-center gap-2 cursor-pointer" onClick={() => step > 2 && setStep(2)}>
+          <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
+            step === 2 ? 'bg-primary text-white shadow-sm scale-up' : step > 2 ? 'bg-success text-white' : 'bg-light text-muted'
+          }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
+            {step > 2 ? '✓' : '2'}
+          </div>
+          <span className={`small fw-bold ${step === 2 ? 'text-primary' : 'text-muted'}`}>2. Security & Schema</span>
+        </div>
+        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed" style={{ opacity: 0.5 }} />
+        <div className="d-flex align-items-center gap-2">
+          <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
+            step === 3 ? 'bg-primary text-white shadow-sm scale-up' : 'bg-light text-muted'
+          }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
+            3
+          </div>
+          <span className={`small fw-bold ${step === 3 ? 'text-primary' : 'text-muted'}`}>3. Questions Pool</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSave}>
+        {/* Step 1: Exam Profile */}
+        {step === 1 && (
+          <div className="card glass-card p-4 shadow-sm border-0 animate-fade">
+            <h5 className="fw-bold text-primary mb-4 pb-2 border-bottom">1. Configure Exam Profile</h5>
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="form-label small fw-bold">Subject / Course</label>
                 <select 
-                  className="form-select" required value={subjectId}
+                  className="form-select py-2" required value={subjectId}
                   onChange={e => setSubjectId(e.target.value)}
                 >
                   <option value="">Choose Subject</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-
-              <div className="mb-3">
-                <label className="form-label">Exam Title</label>
+              <div className="col-md-8">
+                <label className="form-label small fw-bold">Exam Title</label>
                 <input 
-                  type="text" className="form-control" required value={title}
+                  type="text" className="form-control py-2" required value={title}
                   onChange={e => setTitle(e.target.value)} 
+                  placeholder="e.g. Midterm SQL Assessment"
                 />
               </div>
-
-              <div className="mb-3">
-                <label className="form-label">Description / Instructions</label>
+              <div className="col-md-4">
+                <label className="form-label small fw-bold">Duration (Minutes)</label>
+                <input 
+                  type="number" className="form-control py-2" required value={duration}
+                  onChange={e => setDuration(parseInt(e.target.value))} 
+                />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small fw-bold">Total Marks</label>
+                <input 
+                  type="number" className="form-control py-2" required value={totalMarks}
+                  onChange={e => setTotalMarks(parseInt(e.target.value))} 
+                />
+              </div>
+              <div className="col-md-4">
+                <label className="form-label small fw-bold">Exam PIN / Passcode (Mandatory)</label>
+                <input 
+                  type="text" className="form-control py-2" placeholder="e.g. SQLTEST" required
+                  value={accessCode} onChange={e => setAccessCode(e.target.value)}
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label small fw-bold">Description & Instructions</label>
                 <textarea 
-                  className="form-control" rows="3" required value={description}
+                  className="form-control" rows="5" required value={description}
                   onChange={e => setDescription(e.target.value)}
+                  placeholder="Explain requirements, guidelines, grading policies, and instructions for the student..."
                 />
               </div>
+            </div>
 
-              <div className="mb-3">
-                <label className="form-label">Database Schema / Table Structures (Optional)</label>
-                <textarea 
-                  className="form-control font-monospace" rows="5" 
-                  placeholder="e.g. CREATE TABLE users (id INT, name VARCHAR(50));"
-                  value={databaseSchema}
-                  onChange={e => setDatabaseSchema(e.target.value)}
-                  style={{ fontSize: '0.85rem' }}
-                />
-              </div>
+            <div className="d-flex justify-content-end mt-4 pt-3 border-top">
+              <button 
+                type="button" 
+                className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
+                onClick={() => validateStep1() && setStep(2)}
+              >
+                Next: Security & Schema →
+              </button>
+            </div>
+          </div>
+        )}
 
-              <div className="row">
-                <div className="col-6 mb-3">
-                  <label className="form-label">Duration (Mins)</label>
+        {/* Step 2: Security & Schema */}
+        {step === 2 && (
+          <div className="row g-4 animate-fade">
+            {/* Left Column: Security Settings */}
+            <div className="col-lg-6">
+              <div className="card glass-card p-4 h-100 shadow-sm border-0">
+                <h5 className="fw-bold text-primary mb-4 pb-2 border-bottom">2. Access Control & Schedule</h5>
+                
+                <div className="mb-3">
+                  <label className="form-label small fw-bold d-flex justify-content-between align-items-center">
+                    <span>Start Time (Optional)</span>
+                    <button 
+                      type="button" 
+                      className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
+                      style={{ fontSize: '0.72rem' }}
+                      onClick={() => {
+                        const now = new Date();
+                        const tzOffset = now.getTimezoneOffset() * 60000;
+                        setStartTime(new Date(now - tzOffset).toISOString().slice(0, 16));
+                      }}
+                    >
+                      ⚡ Today
+                    </button>
+                  </label>
                   <input 
-                    type="number" className="form-control" required value={duration}
-                    onChange={e => setDuration(parseInt(e.target.value))} 
-                  />
-                </div>
-                <div className="col-6 mb-3">
-                  <label className="form-label">Total Marks</label>
-                  <input 
-                    type="number" className="form-control" required value={totalMarks}
-                    onChange={e => setTotalMarks(parseInt(e.target.value))} 
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3 border-top pt-3">
-                <h6 className="fw-bold text-primary mb-2">Access & Security Settings</h6>
-                <div className="row mb-2">
-                  <div className="col-6">
-                    <label className="form-label small d-flex justify-content-between align-items-center">
-                      <span>Start Time</span>
-                      <button 
-                        type="button" 
-                        className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
-                        style={{ fontSize: '0.72rem' }}
-                        onClick={() => {
-                          const now = new Date();
-                          const tzOffset = now.getTimezoneOffset() * 60000;
-                          setStartTime(new Date(now - tzOffset).toISOString().slice(0, 16));
-                        }}
-                      >
-                        ⚡ Today
-                      </button>
-                    </label>
-                    <input 
-                      type="datetime-local" className="form-control"
-                      value={startTime} onChange={e => setStartTime(e.target.value)}
-                      min={getMinDateTimeString()}
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label small d-flex justify-content-between align-items-center">
-                      <span>End Time (Expiry)</span>
-                      <button 
-                        type="button" 
-                        className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
-                        style={{ fontSize: '0.72rem' }}
-                        onClick={() => {
-                          const baseTime = startTime ? new Date(startTime) : new Date();
-                          const end = new Date(baseTime.getTime() + (duration || 60) * 60000);
-                          const tzOffset = end.getTimezoneOffset() * 60000;
-                          setEndTime(new Date(end - tzOffset).toISOString().slice(0, 16));
-                        }}
-                      >
-                        ⚡ Today
-                      </button>
-                    </label>
-                    <input 
-                      type="datetime-local" className="form-control"
-                      value={endTime} onChange={e => setEndTime(e.target.value)}
-                      min={startTime || getMinDateTimeString()}
-                    />
-                  </div>
-                </div>
-                 <div>
-                  <label className="form-label small">Exam Passcode / Pin Code (Mandatory)</label>
-                  <input 
-                    type="text" className="form-control" placeholder="e.g. SQLTEST2026" required
-                    value={accessCode} onChange={e => setAccessCode(e.target.value)}
+                    type="datetime-local" className="form-control"
+                    value={startTime} onChange={e => setStartTime(e.target.value)}
+                    min={getMinDateTimeString()}
                   />
                 </div>
 
-                <div className="mt-3">
-                  <label className="form-label small">Restrict to Roll Numbers (Optional)</label>
-                  <div className="input-group mb-2">
+                <div className="mb-4">
+                  <label className="form-label small fw-bold d-flex justify-content-between align-items-center">
+                    <span>End Time / Expiry (Optional)</span>
+                    <button 
+                      type="button" 
+                      className="btn btn-link p-0 text-decoration-none text-primary fw-medium"
+                      style={{ fontSize: '0.72rem' }}
+                      onClick={() => {
+                        const baseTime = startTime ? new Date(startTime) : new Date();
+                        const end = new Date(baseTime.getTime() + (duration || 60) * 60000);
+                        const tzOffset = end.getTimezoneOffset() * 60000;
+                        setEndTime(new Date(end - tzOffset).toISOString().slice(0, 16));
+                      }}
+                    >
+                      ⚡ Today
+                    </button>
+                  </label>
+                  <input 
+                    type="datetime-local" className="form-control"
+                    value={endTime} onChange={e => setEndTime(e.target.value)}
+                    min={startTime || getMinDateTimeString()}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label small fw-bold text-primary">Restrict to Roll Numbers (Optional)</label>
+                  <div className="input-group">
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. CS202601, CS202602"
+                      placeholder="e.g. CS202601, CS202602 or paste a list from Notepad"
                       value={rollNumberInput}
                       onChange={e => setRollNumberInput(e.target.value)}
                       onKeyDown={handleRollNumberKeyDown}
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-primary btn-sm"
+                      className="btn btn-primary"
                       onClick={handleAddRollNumber}
                     >
                       Add
                     </button>
                   </div>
-                  <div className="d-flex flex-wrap gap-2">
-                    {allowedRollNumbers.map(rollNum => (
-                      <span key={rollNum} className="badge bg-primary d-flex align-items-center gap-2 px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '12px' }}>
-                        {rollNum}
-                        <button
-                          type="button"
-                          className="btn-close btn-close-white"
-                          style={{ width: '0.4em', height: '0.4em', padding: 0 }}
-                          onClick={() => handleRemoveRollNumber(rollNum)}
-                        />
-                      </span>
-                    ))}
-                  </div>
-                  <small className="text-muted d-block mt-1" style={{ fontSize: '0.72rem' }}>
-                    Paste a comma-separated list from Notepad and click Add. If left empty, all students can take the exam.
-                  </small>
                 </div>
+                
+                <div className="d-flex flex-wrap gap-2 mt-2 max-height-scroll" style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                  {allowedRollNumbers.map(rollNum => (
+                    <span key={rollNum} className="badge bg-primary d-flex align-items-center gap-2 px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '12px' }}>
+                      {rollNum}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white"
+                        style={{ width: '0.4em', height: '0.4em', padding: 0 }}
+                        onClick={() => handleRemoveRollNumber(rollNum)}
+                      />
+                    </span>
+                  ))}
+                </div>
+                <small className="text-muted d-block mt-2" style={{ fontSize: '0.72rem' }}>
+                  If left empty, all registered students can take the exam. You can copy a list of roll numbers from Notepad and paste them here directly.
+                </small>
               </div>
+            </div>
 
-              <button type="submit" className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 mt-2">
-                <FaSave /> Save and Register Exam
-              </button>
-            </form>
-          </div>
-        </div>
-
-          <div className="col-md-7 mb-4">
-          <div className="card glass-card p-4">
-            <h5 className="fw-bold mb-3">{editingQuestionId ? 'Edit Selected Question' : 'Add Custom Question for this Exam'}</h5>
-            
-            <div className="p-3 border rounded mb-4 bg-light">
-              <div className="mb-2">
-                <label className="form-label small fw-bold">Question Title</label>
-                <input 
-                  type="text" className="form-control form-control-sm" placeholder="e.g. Find Highest Salary"
-                  value={customTitle} onChange={e => setCustomTitle(e.target.value)}
-                />
-              </div>
-              <div className="mb-2">
-                <label className="form-label small fw-bold">Problem Description</label>
+            {/* Right Column: Database Schema */}
+            <div className="col-lg-6">
+              <div className="card glass-card p-4 h-100 shadow-sm border-0">
+                <h5 className="fw-bold text-primary mb-4 pb-2 border-bottom">3. Database Table Structures</h5>
+                <label className="form-label small fw-bold text-muted">Table Definitions & CREATE Statements (Optional)</label>
                 <textarea 
-                  className="form-control form-control-sm" rows="2" placeholder="Describe what query the student needs to write..."
-                  value={customDesc} onChange={e => setCustomDesc(e.target.value)}
+                  className="form-control font-monospace flex-grow-1" rows="10" 
+                  placeholder="e.g.&#10;CREATE TABLE employees (&#10;  id INT,&#10;  name VARCHAR(50),&#10;  salary DECIMAL(10,2)&#10;);"
+                  value={databaseSchema}
+                  onChange={e => setDatabaseSchema(e.target.value)}
+                  style={{ fontSize: '0.82rem', lineHeight: '1.4' }}
                 />
+                <small className="text-muted d-block mt-2" style={{ fontSize: '0.72rem' }}>
+                  Provides CREATE TABLE schemas to help students understand the database layout during the exam.
+                </small>
               </div>
-              <div className="row mb-3">
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Points</label>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="col-12 d-flex justify-content-between mt-3">
+              <button 
+                type="button" className="btn btn-outline-secondary px-4 py-2"
+                onClick={() => setStep(1)}
+              >
+                ← Back
+              </button>
+              <button 
+                type="button" className="btn btn-primary px-4 py-2"
+                onClick={() => validateStep2() && setStep(3)}
+              >
+                Next: Questions Pool →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Questions Pool */}
+        {step === 3 && (
+          <div className="row g-4 animate-fade">
+            {/* Custom Question Form */}
+            <div className="col-lg-4">
+              <div className="card glass-card p-4 shadow-sm border-0">
+                <h5 className="fw-bold text-success mb-3 pb-2 border-bottom">
+                  {editingQuestionId ? '✏️ Edit Custom Question' : '➕ Add Custom Question'}
+                </h5>
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Question Title</label>
                   <input 
-                    type="number" className="form-control form-control-sm" 
-                    value={customPoints} onChange={e => setCustomPoints(parseInt(e.target.value))}
+                    type="text" className="form-control form-control-sm" placeholder="e.g. Find Highest Salary"
+                    value={customTitle} onChange={e => setCustomTitle(e.target.value)}
                   />
                 </div>
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Correct SQL Solution Template</label>
-                  <input 
-                    type="text" className="form-control form-control-sm" placeholder="e.g. SELECT MAX(salary) FROM employees;"
-                    value={customSql} onChange={e => setCustomSql(e.target.value)}
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Problem Description</label>
+                  <textarea 
+                    className="form-control form-control-sm" rows="3" placeholder="Describe the task..."
+                    value={customDesc} onChange={e => setCustomDesc(e.target.value)}
                   />
                 </div>
-              </div>
-              
-              <div className="d-flex gap-2">
-                {editingQuestionId ? (
-                  <>
-                    <button 
-                      type="button" className="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                      onClick={async () => {
-                        if (!customTitle || !customDesc || !customSql) {
-                          alert('Please fill out all fields.');
-                          return;
-                        }
-                        try {
-                          await axios.put(`${API_BASE}/api/shared/questions/${editingQuestionId}`, {
-                            title: customTitle,
-                            description: customDesc,
-                            points: customPoints,
-                            sqlTemplate: customSql
-                          });
-                          alert('Question updated successfully!');
-                          const qRes = await axios.get(`${API_BASE}/api/shared/questions`);
-                          setQuestions(qRes.data);
-                          
-                          // Reset form
+                <div className="row mb-3">
+                  <div className="col-6">
+                    <label className="form-label small fw-bold">Points</label>
+                    <input 
+                      type="number" className="form-control form-control-sm" 
+                      value={customPoints} onChange={e => setCustomPoints(parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-bold">SQL Solution</label>
+                    <input 
+                      type="text" className="form-control form-control-sm" placeholder="e.g. SELECT * FROM emp;"
+                      value={customSql} onChange={e => setCustomSql(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="d-flex gap-2">
+                  {editingQuestionId ? (
+                    <>
+                      <button 
+                        type="button" className="btn btn-sm btn-primary"
+                        onClick={async () => {
+                          if (!customTitle || !customDesc || !customSql) {
+                            alert('Please fill out all fields.');
+                            return;
+                          }
+                          try {
+                            await axios.put(`${API_BASE}/api/shared/questions/${editingQuestionId}`, {
+                              title: customTitle,
+                              description: customDesc,
+                              points: customPoints,
+                              sqlTemplate: customSql
+                            });
+                            alert('Question updated successfully!');
+                            const qRes = await axios.get(`${API_BASE}/api/shared/questions`);
+                            setQuestions(qRes.data);
+                            setEditingQuestionId(null);
+                            setCustomTitle('');
+                            setCustomDesc('');
+                            setCustomPoints(10);
+                            setCustomSql('');
+                          } catch (err) {
+                            alert('Error updating question.');
+                          }
+                        }}
+                      >
+                        Save Changes
+                      </button>
+                      <button 
+                        type="button" className="btn btn-sm btn-outline-secondary"
+                        onClick={() => {
                           setEditingQuestionId(null);
                           setCustomTitle('');
                           setCustomDesc('');
                           setCustomPoints(10);
                           setCustomSql('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      type="button" className="btn btn-sm btn-success w-100 d-flex align-items-center justify-content-center gap-1 py-2"
+                      onClick={async () => {
+                        if (!customTitle || !customDesc || !customSql) {
+                          alert('Please fill out Title, Description, and SQL Template fields.');
+                          return;
+                        }
+                        try {
+                          const res = await axios.post(`${API_BASE}/api/shared/questions`, {
+                            questionBankId: 1,
+                            categoryId: 1,
+                            subjectId: parseInt(subjectId) || 1,
+                            title: customTitle,
+                            description: customDesc,
+                            points: customPoints,
+                            sqlTemplate: customSql
+                          });
+                          alert('Question generated and added successfully!');
+                          const qRes = await axios.get(`${API_BASE}/api/shared/questions`);
+                          setQuestions(qRes.data);
+                          setSelectedQuestions(prev => [...prev, res.data.questionId || res.data.id]);
+                          setCustomTitle('');
+                          setCustomDesc('');
+                          setCustomPoints(10);
+                          setCustomSql('');
                         } catch (err) {
-                          alert('Error updating question.');
+                          alert(err.response?.data?.message || 'Error generating question.');
                         }
                       }}
                     >
-                      Save Question Changes
+                      <FaPlus size={12} /> Generate & Select Question
                     </button>
-                    <button 
-                      type="button" className="btn btn-sm btn-outline-secondary"
-                      onClick={() => {
-                        setEditingQuestionId(null);
-                        setCustomTitle('');
-                        setCustomDesc('');
-                        setCustomPoints(10);
-                        setCustomSql('');
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  </>
-                ) : (
-                  <button 
-                    type="button" className="btn btn-sm btn-success d-flex align-items-center gap-1"
-                    onClick={async () => {
-                      if (!customTitle || !customDesc || !customSql) {
-                        alert('Please fill out Title, Description, and SQL Template fields.');
-                        return;
-                      }
-
-                      try {
-                        const res = await axios.post(`${API_BASE}/api/shared/questions`, {
-                          questionBankId: 1,
-                          categoryId: 1,
-                          subjectId: parseInt(subjectId) || 1,
-                          title: customTitle,
-                          description: customDesc,
-                          points: customPoints,
-                          sqlTemplate: customSql
-                        });
-
-                        alert('Question generated and added successfully!');
-                        const qRes = await axios.get(`${API_BASE}/api/shared/questions`);
-                        setQuestions(qRes.data);
-                        setSelectedQuestions(prev => [...prev, res.data.questionId || res.data.id]);
-
-                        setCustomTitle('');
-                        setCustomDesc('');
-                        setCustomPoints(10);
-                        setCustomSql('');
-                      } catch (err) {
-                        alert(err.response?.data?.message || 'Error generating question.');
-                      }
-                    }}
-                  >
-                    <FaPlus size={12} /> Generate & Select Question
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
-            <h5 className="fw-bold mb-3 border-top pt-3">Select Questions Pool ({selectedQuestions.length} selected)</h5>
-            <div className="list-group list-group-flush overflow-auto" style={{ maxHeight: '400px' }}>
-              {questions.map((q) => (
-                <div key={q.id} className="list-group-item d-flex gap-3 align-items-start border-0 bg-transparent py-2 flex-column">
-                  <div className="d-flex align-items-start w-100 gap-3">
-                    <input 
-                      type="checkbox" className="form-check-input mt-1" 
-                      checked={selectedQuestions.includes(q.id)}
-                      onChange={() => handleToggleQuestion(q.id)}
-                    />
-                    <div className="flex-grow-1">
-                      <strong>{q.title}</strong>
-                      <div className="text-muted small mb-1">{q.description}</div>
-                      <div className="text-muted small mb-2 font-monospace bg-light p-1 rounded" style={{ fontSize: '0.8rem' }}>
-                        Solution: {q.sql_template}
+            {/* Questions Pool */}
+            <div className="col-lg-8">
+              <div className="card glass-card p-4 shadow-sm border-0 h-100 d-flex flex-column">
+                <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                  <h5 className="fw-bold text-primary mb-0">📁 Choose Questions from Shared Pool</h5>
+                  <span className="badge bg-primary fs-7">{selectedQuestions.length} Selected</span>
+                </div>
+                <div className="flex-grow-1 pe-2 animate-fade" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'hidden' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: '16px',
+                    padding: '4px'
+                  }}>
+                    {questions.map((q) => (
+                      <div key={q.id} className={`card border p-3 cursor-pointer transition-all ${
+                        selectedQuestions.includes(q.id) ? 'border-primary bg-primary-subtle' : 'border-light-subtle bg-white'
+                      }`} style={{ borderRadius: '16px', display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '10px', minHeight: '185px' }} onClick={() => handleToggleQuestion(q.id)}>
+                        <input 
+                          type="checkbox" className="form-check-input mt-1" 
+                          checked={selectedQuestions.includes(q.id)}
+                          onChange={() => {}} // handled by card onClick
+                        />
+                        <div className="flex-grow-1 d-flex flex-column justify-content-between" style={{ minHeight: '150px' }}>
+                          <div>
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <strong style={{ fontSize: '0.88rem' }}>{q.title}</strong>
+                              <span className="badge bg-secondary small">{q.points} pts</span>
+                            </div>
+                            <p className="text-muted small mb-2" style={{ fontSize: '0.78rem', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {q.description}
+                            </p>
+                            <div className="bg-light p-2 rounded font-monospace small mb-2" style={{ fontSize: '0.72rem', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                              Solution: {q.sql_template}
+                            </div>
+                          </div>
+                          <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                            <span className="badge bg-light text-dark border small" style={{ fontSize: '0.7rem' }}>{q.subject_name}</span>
+                            <div className="btn-group btn-group-sm" onClick={e => e.stopPropagation()}>
+                              <button 
+                                type="button" className="btn btn-link text-primary p-0 px-2 fw-semibold"
+                                onClick={() => {
+                                  setEditingQuestionId(q.id);
+                                  setCustomTitle(q.title || '');
+                                  setCustomDesc(q.description || '');
+                                  setCustomPoints(q.points || 10);
+                                  setCustomSql(q.sql_template || '');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                type="button" className="btn btn-link text-danger p-0 px-2 fw-semibold"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Are you sure you want to delete this question?')) {
+                                    try {
+                                      await axios.delete(`${API_BASE}/api/shared/questions/${q.id}`);
+                                      alert('Question deleted!');
+                                      const r = await axios.get(`${API_BASE}/api/shared/questions`);
+                                      setQuestions(r.data);
+                                      setSelectedQuestions(prev => prev.filter(id => id !== q.id));
+                                    } catch (err) {
+                                      alert('Error deleting question.');
+                                    }
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <span className="badge bg-secondary">{q.subject_name}</span> &bull; <span className="badge bg-info">{q.points} Points</span>
-                    </div>
-                    <div className="btn-group btn-group-sm">
-                      <button 
-                        type="button" className="btn btn-outline-primary"
-                        onClick={() => {
-                          setEditingQuestionId(q.id);
-                          setCustomTitle(q.title || '');
-                          setCustomDesc(q.description || '');
-                          setCustomPoints(q.points || 10);
-                          setCustomSql(q.sql_template || '');
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        type="button" className="btn btn-outline-danger"
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this question from the shared pool?')) {
-                            axios.delete(`${API_BASE}/api/shared/questions/${q.id}`).then(() => {
-                              alert('Question deleted!');
-                              axios.get(`${API_BASE}/api/shared/questions`).then(r => setQuestions(r.data));
-                              setSelectedQuestions(prev => prev.filter(id => id !== q.id));
-                            }).catch(err => alert('Error deleting question.'));
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="col-12 d-flex justify-content-between mt-3">
+              <button 
+                type="button" className="btn btn-outline-secondary px-4 py-2"
+                onClick={() => setStep(2)}
+              >
+                ← Back
+              </button>
+              <button 
+                type="submit" className="btn btn-success px-5 py-2 shadow d-flex align-items-center gap-2"
+              >
+                <FaSave /> Save and Register Exam
+              </button>
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </form>
     </div>
   );
 };
 
 export default CreateExam;
-
-

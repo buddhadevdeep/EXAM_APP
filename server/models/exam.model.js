@@ -11,6 +11,7 @@ const {
   Feedback: MongoFeedback,
   Teacher: MongoTeacher,
   Student: MongoStudent,
+  User: MongoUser,
   getNextSequenceValue
 } = require('./mongoose.model');
 
@@ -203,21 +204,72 @@ class Submission {
   }
 
   static async getSubmissionsForExam(examId) {
-    const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
-    const studentIds = submissions.map(sub => sub.student_id);
-    const students = await MongoStudent.find({ _id: { $in: studentIds } }).lean();
-    const studentMap = new Map(students.map(s => [s._id, s]));
+    const numericExamId = Number(examId);
+    const exam = await MongoExam.findById(numericExamId).lean();
+    if (!exam) return [];
 
-    return submissions.map(sub => {
-      const s = studentMap.get(sub.student_id) || {};
-      return {
+    const submissions = await MongoSubmission.find({ exam_id: numericExamId }).lean();
+    
+    // Fetch active students by mapping active user ids
+    const students = await MongoStudent.find().lean();
+    const userIds = students.map(s => s.user_id);
+    const activeUsers = await MongoUser.find({ _id: { $in: userIds }, is_active: 1 }).lean();
+    const activeUserIds = new Set(activeUsers.map(u => u._id));
+    const activeStudents = students.filter(s => activeUserIds.has(s.user_id));
+
+    const allowedSet = new Set((exam.allowed_roll_numbers || []).map(r => String(r).trim().toLowerCase()));
+    const isAssigned = (student) => {
+      if (allowedSet.size === 0) return true;
+      return allowedSet.has(String(student.roll_number).trim().toLowerCase());
+    };
+
+    const studentIdsWithSub = submissions.map(sub => sub.student_id);
+    const studentsWithSub = await MongoStudent.find({ _id: { $in: studentIdsWithSub } }).lean();
+
+    const allKnownStudentsMap = new Map();
+    studentsWithSub.forEach(s => allKnownStudentsMap.set(s._id.toString(), s));
+    activeStudents.forEach(s => allKnownStudentsMap.set(s._id.toString(), s));
+
+    const finalSubmissions = [];
+    const processedStudentIds = new Set();
+
+    // 1. Add all existing submissions (Draft, Submitted, Graded)
+    for (const sub of submissions) {
+      const studentIdStr = sub.student_id.toString();
+      processedStudentIds.add(studentIdStr);
+      const s = allKnownStudentsMap.get(studentIdStr) || {};
+      finalSubmissions.push({
         ...sub,
         id: sub._id,
-        student_name: s.full_name || '',
+        student_name: s.full_name || 'Unknown Student',
         roll_number: s.roll_number || '',
         class_section: s.class_section || ''
-      };
-    });
+      });
+    }
+
+    // 2. Add virtual "Not Started" submissions for active, assigned students who haven't started yet (only if exam is open)
+    if (exam.is_closed === 0) {
+      for (const s of activeStudents) {
+        const studentIdStr = s._id.toString();
+        if (processedStudentIds.has(studentIdStr)) continue;
+
+        if (isAssigned(s)) {
+          finalSubmissions.push({
+            id: `virtual_${s._id}`,
+            exam_id: examId,
+            student_id: s._id,
+            status: 'Not Started',
+            submitted_at: null,
+            total_marks: 0,
+            student_name: s.full_name || '',
+            roll_number: s.roll_number || '',
+            class_section: s.class_section || ''
+          });
+        }
+      }
+    }
+
+    return finalSubmissions;
   }
 
   static async getSubmissionsForStudent(studentId) {
