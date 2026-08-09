@@ -83,18 +83,46 @@ const StudentManagement = () => {
         await axios.put(`${API_BASE}/api/teacher/students/${editingUserId}`, formData);
         setSuccess('Student updated successfully!');
       } else {
-        await axios.post(`${API_BASE}/api/teacher/students`, formData);
-        setSuccess('Student registered successfully!');
+        const rollNumbers = formData.rollNumber.split(',').map(r => r.trim()).filter(Boolean);
+        if (rollNumbers.length > 1) {
+          const [emailPrefix, emailDomain] = formData.email.split('@');
+          const results = await Promise.allSettled(rollNumbers.map(rollNum => {
+            const generatedEmail = `${emailPrefix}_${rollNum}@${emailDomain}`;
+            const generatedFullName = `${formData.fullName} (${rollNum})`;
+            return axios.post(`${API_BASE}/api/teacher/students`, {
+              ...formData,
+              rollNumber: rollNum,
+              email: generatedEmail,
+              fullName: generatedFullName
+            });
+          }));
+
+          const successes = results.filter(r => r.status === 'fulfilled');
+          const failures = results.filter(r => r.status === 'rejected');
+
+          if (failures.length > 0) {
+            const errorMessages = failures.map(f => {
+              const errObj = f.reason;
+              return errObj.response?.data?.message || errObj.message || 'Unknown error';
+            });
+            setError(`Registered ${successes.length} students, but ${failures.length} failed: ${Array.from(new Set(errorMessages)).join(', ')}`);
+          } else {
+            setSuccess(`Successfully registered all ${rollNumbers.length} students!`);
+          }
+        } else {
+          await axios.post(`${API_BASE}/api/teacher/students`, formData);
+          setSuccess('Student registered successfully!');
+        }
       }
       setTimeout(() => {
         setShowModal(false);
         fetchStudents();
-      }, 1000);
+      }, 1500);
     } catch (err) {
       if (err.response?.data?.errors) {
         setError(err.response.data.errors.map(x => x.msg).join(', '));
       } else {
-        setError(err.response?.data?.message || 'Action failed.');
+        setError(err.response?.data?.message || err.message || 'Action failed.');
       }
     }
   };
@@ -219,11 +247,11 @@ const StudentManagement = () => {
                   </div>
                   <div className="row">
                     <div className="col-6 mb-3">
-                      <label className="form-label small fw-bold">Roll Number</label>
+                      <label className="form-label small fw-bold">Roll Number(s)</label>
                       <input 
                         type="text" className="form-control" required
                         value={formData.rollNumber} onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })} 
-                        placeholder="e.g. 502"
+                        placeholder="e.g. 502 or 502,503,504"
                       />
                     </div>
                     <div className="col-6 mb-3">
