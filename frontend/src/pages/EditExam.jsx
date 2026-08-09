@@ -20,8 +20,7 @@ const EditExam = () => {
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
-  const [allowedRollNumbers, setAllowedRollNumbers] = useState([]);
-  const [rollNumberInput, setRollNumberInput] = useState('');
+  const [allowedRollNumbersText, setAllowedRollNumbersText] = useState('');
   const [databaseSchema, setDatabaseSchema] = useState('');
   const [students, setStudents] = useState([]);
   
@@ -33,48 +32,7 @@ const EditExam = () => {
 
   const navigate = useNavigate();
 
-  const handleAddRollNumber = () => {
-    const inputs = rollNumberInput.split(',').map(s => s.trim()).filter(Boolean);
-    if (inputs.length === 0) return;
 
-    const newRollNumbers = [...allowedRollNumbers];
-    const invalidRollNumbers = [];
-    const duplicateRollNumbers = [];
-
-    const dbRollNumbers = new Set(students.map(s => s.roll_number));
-
-    for (const rollNum of inputs) {
-      if (!dbRollNumbers.has(rollNum)) {
-        invalidRollNumbers.push(rollNum);
-      } else if (newRollNumbers.includes(rollNum)) {
-        duplicateRollNumbers.push(rollNum);
-      } else {
-        newRollNumbers.push(rollNum);
-      }
-    }
-
-    if (invalidRollNumbers.length > 0) {
-      alert(`The following roll numbers do not exist in the database and were not added: ${invalidRollNumbers.join(', ')}`);
-    }
-
-    if (duplicateRollNumbers.length > 0) {
-      alert(`The following roll numbers are already in the list: ${duplicateRollNumbers.join(', ')}`);
-    }
-
-    setAllowedRollNumbers(newRollNumbers);
-    setRollNumberInput('');
-  };
-
-  const handleRemoveRollNumber = (rollNum) => {
-    setAllowedRollNumbers(allowedRollNumbers.filter(r => r !== rollNum));
-  };
-
-  const handleRollNumberKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      handleAddRollNumber();
-    }
-  };
 
   const getMinDateTimeString = () => {
     const now = new Date();
@@ -123,7 +81,7 @@ const EditExam = () => {
             setSelectedQuestions(detailsRes.data.questions.map(q => q.question_id || q.id));
           }
 
-          setAllowedRollNumbers(ex.allowed_roll_numbers || []);
+          setAllowedRollNumbersText(ex.allowed_roll_numbers ? ex.allowed_roll_numbers.join(', ') : '');
           setDatabaseSchema(ex.database_schema || '');
         }
       } catch (err) {
@@ -174,6 +132,36 @@ const EditExam = () => {
       }
     }
 
+    // Parse and validate roll numbers
+    const rollNumbers = allowedRollNumbersText
+      ? allowedRollNumbersText.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+
+    if (rollNumbers.length > 0) {
+      const dbStudentMap = new Map(students.map(s => [s.roll_number, s]));
+      const invalidRollNumbers = [];
+      const inactiveRollNumbers = [];
+
+      for (const rollNum of rollNumbers) {
+        const student = dbStudentMap.get(rollNum);
+        if (!student) {
+          invalidRollNumbers.push(rollNum);
+        } else if (student.is_active !== 1) {
+          inactiveRollNumbers.push(rollNum);
+        }
+      }
+
+      if (invalidRollNumbers.length > 0) {
+        alert(`Validation Error: The following roll numbers do not exist in the database: ${invalidRollNumbers.join(', ')}`);
+        return;
+      }
+
+      if (inactiveRollNumbers.length > 0) {
+        alert(`Validation Error: The following students are inactive and cannot be assigned to this exam: ${inactiveRollNumbers.join(', ')}`);
+        return;
+      }
+    }
+
     const toUTCString = (dateTimeLocalStr) => {
       if (!dateTimeLocalStr) return null;
       const d = new Date(dateTimeLocalStr);
@@ -191,7 +179,7 @@ const EditExam = () => {
         accessCode,
         startTime: toUTCString(startTime),
         endTime: toUTCString(endTime),
-        allowedRollNumbers: allowedRollNumbers,
+        allowedRollNumbers: rollNumbers,
         databaseSchema: databaseSchema
       });
       alert('Exam updated successfully!');
@@ -326,38 +314,15 @@ const EditExam = () => {
 
                 <div className="mt-3">
                   <label className="form-label small">Restrict to Roll Numbers (Optional)</label>
-                  <div className="input-group mb-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. ROLL123"
-                      value={rollNumberInput}
-                      onChange={e => setRollNumberInput(e.target.value)}
-                      onKeyDown={handleRollNumberKeyDown}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={handleAddRollNumber}
-                    >
-                      Add
-                    </button>
-                  </div>
-                  <div className="d-flex flex-wrap gap-2">
-                    {allowedRollNumbers.map(rollNum => (
-                      <span key={rollNum} className="badge bg-primary d-flex align-items-center gap-2 px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '12px' }}>
-                        {rollNum}
-                        <button
-                          type="button"
-                          className="btn-close btn-close-white"
-                          style={{ width: '0.4em', height: '0.4em', padding: 0 }}
-                          onClick={() => handleRemoveRollNumber(rollNum)}
-                        />
-                      </span>
-                    ))}
-                  </div>
+                  <textarea
+                    className="form-control"
+                    rows="3"
+                    placeholder="Enter comma-separated roll numbers (e.g. CS202601, CS202602)"
+                    value={allowedRollNumbersText}
+                    onChange={e => setAllowedRollNumbersText(e.target.value)}
+                  />
                   <small className="text-muted d-block mt-1" style={{ fontSize: '0.72rem' }}>
-                    If left empty, all students can take the exam. Press Enter or comma to add.
+                    Copy and paste roll numbers directly from Notepad. If left empty, all students can take the exam.
                   </small>
                 </div>
               </div>
