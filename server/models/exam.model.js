@@ -221,19 +221,47 @@ class Submission {
   }
 
   static async getSubmissionsForStudent(studentId) {
+    const student = await MongoStudent.findById(studentId).lean();
+    if (!student) return [];
+
     const submissions = await MongoSubmission.find({ student_id: studentId }).lean();
-    const examIds = submissions.map(sub => sub.exam_id);
+    const subMap = new Map(submissions.map(sub => [sub.exam_id, sub]));
+
+    // Fetch all active (published and not closed) exams
+    const activeExams = await MongoExam.find({ is_published: 1, is_closed: 0 }).lean();
+
+    // Filter exams allowed for this student based on roll number restriction
+    const assignedExams = activeExams.filter(e => {
+      if (!e.allowed_roll_numbers || e.allowed_roll_numbers.length === 0) {
+        return true;
+      }
+      return e.allowed_roll_numbers.includes(student.roll_number);
+    });
+
+    const assignedExamIds = new Set(assignedExams.map(e => e._id));
+
+    // Also fetch any exams that are closed but the student has a submission for (to preserve history)
+    const closedExamIds = submissions
+      .map(sub => sub.exam_id)
+      .filter(examId => !assignedExamIds.has(examId));
+      
+    const closedExams = await MongoExam.find({ _id: { $in: closedExamIds } }).lean();
     
-    const exams = await MongoExam.find({ _id: { $in: examIds }, is_closed: 0 }).lean();
-    const examMap = new Map(exams.map(e => [e._id, e]));
+    // Combine all relevant exams
+    const allExams = [...assignedExams, ...closedExams];
+    const examMap = new Map(allExams.map(e => [e._id, e]));
 
-    const subjectIds = exams.map(e => e.subject_id);
-    const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
-    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
-
+    // Fetch subjects, marks and feedbacks for all these exams/submissions in parallel
+    const subjectIds = allExams.map(e => e.subject_id);
     const submissionIds = submissions.map(sub => sub._id);
-    const marks = await MongoMark.find({ submission_id: { $in: submissionIds } }).lean();
-    const feedbackDocs = await MongoFeedback.find({ submission_id: { $in: submissionIds } }).lean();
+
+    const [subjects, marks, feedbackDocs] = await Promise.all([
+      MongoSubject.find({ _id: { $in: subjectIds } }).lean(),
+      MongoMark.find({ submission_id: { $in: submissionIds } }).lean(),
+      MongoFeedback.find({ submission_id: { $in: submissionIds } }).lean()
+    ]);
+
+    const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
 
     const marksSumMap = new Map();
     marks.forEach(m => {
@@ -242,22 +270,56 @@ class Submission {
     });
 
     const feedbackMap = new Map(feedbackDocs.map(f => [f.submission_id, f.comments]));
-    const activeSubmissions = submissions.filter(sub => examMap.has(sub.exam_id));
 
-    return activeSubmissions.map(sub => {
-      const e = examMap.get(sub.exam_id);
-      const subName = e ? subjectMap.get(e.subject_id) : '';
+    // Now map them: we want to map all exams that the student is assigned to!
+    const results = allExams.map(e => {
+      const sub = subMap.get(e._id);
+      
+      let status = 'Not Started';
+      let submissionId = null;
+      let submittedAt = null;
+      let marksObtained = 0;
+      let teacherComments = null;
+
+      if (sub) {
+        submissionId = sub._id;
+        submittedAt = sub.submitted_at;
+        marksObtained = marksSumMap.get(sub._id) || 0;
+        teacherComments = feedbackMap.get(sub._id) || null;
+        
+        if (sub.status === 'Draft') {
+          if (e.is_closed === 1) {
+            status = 'Absent'; // Closed and still draft means Absent
+          } else {
+            status = 'In Progress'; // Active and draft means In Progress
+          }
+        } else {
+          status = sub.status; // Submitted, Graded, PendingVerification
+        }
+      } else {
+        if (e.is_closed === 1) {
+          status = 'Absent'; // Closed and not started means Absent
+        } else {
+          status = 'Not Started'; // Active and not started means Not Started
+        }
+      }
+
       return {
-        ...sub,
-        id: sub._id,
-        exam_title: e ? e.title : '',
-        total_marks: e ? e.total_marks : 0,
-        duration_minutes: e ? e.duration_minutes : 0,
-        subject_name: subName,
-        marks_obtained: marksSumMap.get(sub._id) || 0,
-        teacher_comments: feedbackMap.get(sub._id) || null
+        id: submissionId || `temp-${e._id}`,
+        exam_id: e._id,
+        exam_title: e.title,
+        total_marks: e.total_marks,
+        duration_minutes: e.duration_minutes,
+        subject_name: subjectMap.get(e.subject_id) || '',
+        status,
+        submitted_at: submittedAt,
+        marks_obtained: status === 'Graded' ? marksObtained : null,
+        teacher_comments: teacherComments,
+        is_closed: e.is_closed
       };
     });
+
+    return results;
   }
 
   static async getSubmissionDetails(submissionId) {

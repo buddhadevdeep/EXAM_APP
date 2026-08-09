@@ -62,8 +62,14 @@ const StudentSubmissions = () => {
                     })() : 'N/A'}
                   </td>
                   <td>
-                    <span className={`status-badge ${sub.status === 'Graded' ? 'bg-success text-white' : sub.status === 'Draft' ? 'bg-danger text-white' : 'bg-primary text-white'}`}>
-                      {sub.status === 'Draft' ? 'Absent' : sub.status}
+                    <span className={`status-badge ${
+                      sub.status === 'Graded' ? 'bg-success text-white' : 
+                      sub.status === 'In Progress' ? 'bg-warning text-dark' : 
+                      sub.status === 'Not Started' ? 'bg-secondary text-white' : 
+                      sub.status === 'Absent' ? 'bg-danger text-white' : 
+                      'bg-primary text-white'
+                    }`}>
+                      {sub.status}
                     </span>
                   </td>
                   <td>
@@ -71,8 +77,12 @@ const StudentSubmissions = () => {
                       <span className="fw-bold text-success">
                         {sub.marks_obtained !== null ? parseFloat(sub.marks_obtained) : 0} / {sub.total_marks}
                       </span>
-                    ) : sub.status === 'Draft' ? (
+                    ) : sub.status === 'Absent' ? (
                       <span className="text-danger small fw-bold">Absent</span>
+                    ) : sub.status === 'In Progress' ? (
+                      <span className="text-warning small fw-bold">In Progress</span>
+                    ) : sub.status === 'Not Started' ? (
+                      <span className="text-muted small">Not Started</span>
                     ) : (
                       <span className="text-muted small">Grading Pending</span>
                     )}

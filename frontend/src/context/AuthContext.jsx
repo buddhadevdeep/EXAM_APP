@@ -75,6 +75,18 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!token || !user || user.role !== 'Student') return;
+
+    // Send a heartbeat ping to keep last_active_at updated and prevent other logins
+    const interval = setInterval(() => {
+      axios.get(`${API_BASE}/api/student/notifications`).catch(() => {});
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [token, user]);
+
+
   const login = async (email, password) => {
     const res = await axios.post(`${API_BASE}/api/auth/login`, { email, password });
     const { token: userToken, user: userData } = res.data;
