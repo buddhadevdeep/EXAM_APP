@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -58,9 +59,26 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/shared', sharedRoutes);
 
-// Welcome Endpoint
-app.get('/', (req, res) => {
+// Serve static files from the React frontend build
+const distPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(distPath));
+
+// Welcome Endpoint for API
+app.get('/api', (req, res) => {
   res.status(200).json({ message: 'Welcome to the Smart SQL Exam Platform API' });
+});
+
+// Catch-all route to serve React's index.html for page refreshes
+app.get('*', (req, res, next) => {
+  // If request is for an API endpoint, do not serve index.html
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      next();
+    }
+  });
 });
 
 // Handling 404 Route Errors
