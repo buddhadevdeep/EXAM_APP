@@ -1,0 +1,12 @@
+services:
+  # Frontend Static Site configuration
+  - type: static
+    name: exam-app-frontend
+    env: static
+    buildCommand: npm run build
+    publishPath: frontend/dist
+    routes:
+      # Rewrite all non-file client routes back to index.html for React Router
+      - type: rewrite
+        source: /*
+        destination: /index.html
