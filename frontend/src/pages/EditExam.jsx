@@ -23,6 +23,7 @@ const EditExam = () => {
   const [allowedRollNumbers, setAllowedRollNumbers] = useState([]);
   const [rollNumberInput, setRollNumberInput] = useState('');
   const [databaseSchema, setDatabaseSchema] = useState('');
+  const [students, setStudents] = useState([]);
   
   // Custom Question Form State
   const [customTitle, setCustomTitle] = useState('');
@@ -33,13 +34,34 @@ const EditExam = () => {
   const navigate = useNavigate();
 
   const handleAddRollNumber = () => {
-    const trimmed = rollNumberInput.trim();
-    if (!trimmed) return;
-    if (allowedRollNumbers.includes(trimmed)) {
-      alert(`Roll number "${trimmed}" is already added!`);
-      return;
+    const inputs = rollNumberInput.split(',').map(s => s.trim()).filter(Boolean);
+    if (inputs.length === 0) return;
+
+    const newRollNumbers = [...allowedRollNumbers];
+    const invalidRollNumbers = [];
+    const duplicateRollNumbers = [];
+
+    const dbRollNumbers = new Set(students.map(s => s.roll_number));
+
+    for (const rollNum of inputs) {
+      if (!dbRollNumbers.has(rollNum)) {
+        invalidRollNumbers.push(rollNum);
+      } else if (newRollNumbers.includes(rollNum)) {
+        duplicateRollNumbers.push(rollNum);
+      } else {
+        newRollNumbers.push(rollNum);
+      }
     }
-    setAllowedRollNumbers([...allowedRollNumbers, trimmed]);
+
+    if (invalidRollNumbers.length > 0) {
+      alert(`The following roll numbers do not exist in the database and were not added: ${invalidRollNumbers.join(', ')}`);
+    }
+
+    if (duplicateRollNumbers.length > 0) {
+      alert(`The following roll numbers are already in the list: ${duplicateRollNumbers.join(', ')}`);
+    }
+
+    setAllowedRollNumbers(newRollNumbers);
     setRollNumberInput('');
   };
 
@@ -63,14 +85,16 @@ const EditExam = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [subRes, qRes, detailsRes] = await Promise.all([
+        const [subRes, qRes, detailsRes, studentRes] = await Promise.all([
           axios.get(`${API_BASE}/api/shared/subjects`),
           axios.get(`${API_BASE}/api/shared/questions`),
-          axios.get(`${API_BASE}/api/teacher/exams/${examId}`)
+          axios.get(`${API_BASE}/api/teacher/exams/${examId}`),
+          axios.get(`${API_BASE}/api/teacher/students`)
         ]);
 
         setSubjects(subRes.data);
         setQuestions(qRes.data);
+        setStudents(studentRes.data);
 
         if (detailsRes && detailsRes.data) {
           const ex = detailsRes.data.exam;
