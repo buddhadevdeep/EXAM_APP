@@ -58,6 +58,7 @@ const Submissions = () => {
                       sub.status === 'Graded' ? 'bg-success text-white' :
                       sub.status === 'Submitted' ? 'bg-primary text-white' :
                       sub.status === 'Draft' ? 'bg-warning text-dark' :
+                      sub.status === 'Absent' ? 'bg-danger text-white' :
                       sub.status === 'Not Started' ? 'bg-secondary text-white' : 'bg-light text-dark'
                     }`}>
                       {sub.status === 'Draft' ? 'In Progress' : sub.status}

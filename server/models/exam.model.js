@@ -232,40 +232,51 @@ class Submission {
 
     const finalSubmissions = [];
     const processedStudentIds = new Set();
+    const isExpired = exam.is_closed === 1 || (exam.end_time && new Date() > new Date(exam.end_time));
 
     // 1. Add all existing submissions (Draft, Submitted, Graded)
     for (const sub of submissions) {
       const studentIdStr = sub.student_id.toString();
       processedStudentIds.add(studentIdStr);
       const s = allKnownStudentsMap.get(studentIdStr) || {};
+      
+      let status = sub.status;
+      if (status === 'Draft' && isExpired) {
+        status = 'Absent';
+      }
+
       finalSubmissions.push({
         ...sub,
         id: sub._id,
+        status,
         student_name: s.full_name || 'Unknown Student',
         roll_number: s.roll_number || '',
         class_section: s.class_section || ''
       });
     }
 
-    // 2. Add virtual "Not Started" submissions for active, assigned students who haven't started yet (only if exam is open)
-    if (exam.is_closed === 0) {
-      for (const s of activeStudents) {
-        const studentIdStr = s._id.toString();
-        if (processedStudentIds.has(studentIdStr)) continue;
+    // 2. Add virtual submissions for active, assigned students who haven't started yet
+    for (const s of activeStudents) {
+      const studentIdStr = s._id.toString();
+      if (processedStudentIds.has(studentIdStr)) continue;
 
-        if (isAssigned(s)) {
-          finalSubmissions.push({
-            id: `virtual_${s._id}`,
-            exam_id: examId,
-            student_id: s._id,
-            status: 'Not Started',
-            submitted_at: null,
-            total_marks: 0,
-            student_name: s.full_name || '',
-            roll_number: s.roll_number || '',
-            class_section: s.class_section || ''
-          });
+      if (isAssigned(s)) {
+        let status = 'Not Started';
+        if (isExpired) {
+          status = 'Absent';
         }
+
+        finalSubmissions.push({
+          id: `virtual_${s._id}`,
+          exam_id: examId,
+          student_id: s._id,
+          status,
+          submitted_at: null,
+          total_marks: 0,
+          student_name: s.full_name || '',
+          roll_number: s.roll_number || '',
+          class_section: s.class_section || ''
+        });
       }
     }
 
@@ -333,6 +344,8 @@ class Submission {
       let marksObtained = 0;
       let teacherComments = null;
 
+      const isExpired = e.is_closed === 1 || (e.end_time && new Date() > new Date(e.end_time));
+
       if (sub) {
         submissionId = sub._id;
         submittedAt = sub.submitted_at;
@@ -340,8 +353,8 @@ class Submission {
         teacherComments = feedbackMap.get(sub._id) || null;
         
         if (sub.status === 'Draft') {
-          if (e.is_closed === 1) {
-            status = 'Absent'; // Closed and still draft means Absent
+          if (isExpired) {
+            status = 'Absent'; // Closed/expired and still draft means Absent
           } else {
             status = 'In Progress'; // Active and draft means In Progress
           }
@@ -349,8 +362,8 @@ class Submission {
           status = sub.status; // Submitted, Graded, PendingVerification
         }
       } else {
-        if (e.is_closed === 1) {
-          status = 'Absent'; // Closed and not started means Absent
+        if (isExpired) {
+          status = 'Absent'; // Closed/expired and not started means Absent
         } else {
           status = 'Not Started'; // Active and not started means Not Started
         }
