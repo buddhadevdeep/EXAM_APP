@@ -32,7 +32,7 @@ const CreateExam = () => {
   const navigate = useNavigate();
 
   const handleAddRollNumber = () => {
-    const inputs = rollNumberInput.split(',').map(s => s.trim()).filter(Boolean);
+    const inputs = rollNumberInput.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
     if (inputs.length === 0) return;
 
     const newRollNumbers = [...allowedRollNumbers];
@@ -40,18 +40,18 @@ const CreateExam = () => {
     const inactiveRollNumbers = [];
     const duplicateRollNumbers = [];
 
-    const dbStudentMap = new Map(students.map(s => [s.roll_number, s]));
+    const dbStudentMap = new Map(students.map(s => [s.roll_number.toLowerCase(), s]));
 
     for (const rollNum of inputs) {
-      const student = dbStudentMap.get(rollNum);
+      const student = dbStudentMap.get(rollNum.toLowerCase());
       if (!student) {
         invalidRollNumbers.push(rollNum);
       } else if (student.is_active !== 1) {
-        inactiveRollNumbers.push(rollNum);
-      } else if (newRollNumbers.includes(rollNum)) {
-        duplicateRollNumbers.push(rollNum);
+        inactiveRollNumbers.push(student.roll_number);
+      } else if (newRollNumbers.includes(student.roll_number)) {
+        duplicateRollNumbers.push(student.roll_number);
       } else {
-        newRollNumbers.push(rollNum);
+        newRollNumbers.push(student.roll_number);
       }
     }
 
