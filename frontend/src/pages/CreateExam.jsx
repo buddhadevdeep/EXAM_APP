@@ -40,18 +40,18 @@ const CreateExam = () => {
     const inactiveRollNumbers = [];
     const duplicateRollNumbers = [];
 
-    const dbStudentMap = new Map(students.map(s => [s.roll_number.toLowerCase(), s]));
+    const dbStudentMap = new Map(students.map(s => [String(s.roll_number).toLowerCase(), s]));
 
     for (const rollNum of inputs) {
       const student = dbStudentMap.get(rollNum.toLowerCase());
       if (!student) {
         invalidRollNumbers.push(rollNum);
       } else if (student.is_active !== 1) {
-        inactiveRollNumbers.push(student.roll_number);
-      } else if (newRollNumbers.includes(student.roll_number)) {
-        duplicateRollNumbers.push(student.roll_number);
+        inactiveRollNumbers.push(String(student.roll_number));
+      } else if (newRollNumbers.includes(String(student.roll_number))) {
+        duplicateRollNumbers.push(String(student.roll_number));
       } else {
-        newRollNumbers.push(student.roll_number);
+        newRollNumbers.push(String(student.roll_number));
       }
     }
 
