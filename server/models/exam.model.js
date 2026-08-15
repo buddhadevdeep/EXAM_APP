@@ -232,7 +232,7 @@ class Submission {
 
     const finalSubmissions = [];
     const processedStudentIds = new Set();
-    const isExpired = exam.is_closed === 1 || (exam.end_time && new Date() > new Date(exam.end_time));
+    const isExpired = exam.is_closed === 1 || exam.is_published === 0 || (exam.end_time && new Date() > new Date(exam.end_time));
 
     // 1. Add all existing submissions (Draft, Submitted, Graded)
     for (const sub of submissions) {
@@ -344,7 +344,7 @@ class Submission {
       let marksObtained = 0;
       let teacherComments = null;
 
-      const isExpired = e.is_closed === 1 || (e.end_time && new Date() > new Date(e.end_time));
+      const isExpired = e.is_closed === 1 || e.is_published === 0 || (e.end_time && new Date() > new Date(e.end_time));
 
       if (sub) {
         submissionId = sub._id;
