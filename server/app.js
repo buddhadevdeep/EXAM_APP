@@ -24,6 +24,7 @@ app.use(morgan('dev'));
 // CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://sql-exam.vercel.app",
   process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : ""
 ].filter(Boolean);
 
@@ -31,10 +32,14 @@ app.use(cors({
   origin: function (origin, callback) {
     // Standardize origin lookup (without trailing slash)
     const normalizedOrigin = origin ? origin.replace(/\/$/, "") : "";
-    if (!origin || allowedOrigins.includes(normalizedOrigin)) {
+    if (
+      !origin || 
+      allowedOrigins.includes(normalizedOrigin) || 
+      normalizedOrigin.endsWith(".vercel.app")
+    ) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(null, false);
     }
   },
   credentials: true
