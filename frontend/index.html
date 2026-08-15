@@ -1,61 +1,64 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-    <script>
-      window.addEventListener('error', function(e) {
-        if (e.message && (
-          e.message.indexOf('ResizeObserver') !== -1 ||
-          e.message.indexOf('loop completed with undelivered notifications') !== -1
-        )) {
-          return;
-        }
-        var errDiv = document.createElement('div');
-        errDiv.style.position = 'fixed';
-        errDiv.style.top = '0';
-        errDiv.style.left = '0';
-        errDiv.style.width = '100%';
-        errDiv.style.background = '#ffe3e3';
-        errDiv.style.color = '#d32f2f';
-        errDiv.style.padding = '20px';
-        errDiv.style.zIndex = '99999999';
-        errDiv.style.fontFamily = 'monospace';
-        errDiv.style.fontSize = '14px';
-        errDiv.style.boxSizing = 'border-box';
-        errDiv.style.whiteSpace = 'pre-wrap';
-        errDiv.innerHTML = '<strong>Unhandled Error:</strong> ' + e.message + '\nStack: ' + (e.error ? e.error.stack : 'N/A');
-        document.body.appendChild(errDiv);
-      });
-      window.addEventListener('unhandledrejection', function(e) {
-        if (e.reason && e.reason.message && (
-          e.reason.message.indexOf('ResizeObserver') !== -1 ||
-          e.reason.message.indexOf('loop completed with undelivered notifications') !== -1
-        )) {
-          return;
-        }
-        var errDiv = document.createElement('div');
-        errDiv.style.position = 'fixed';
-        errDiv.style.top = '0';
-        errDiv.style.left = '0';
-        errDiv.style.width = '100%';
-        errDiv.style.background = '#ffe3e3';
-        errDiv.style.color = '#d32f2f';
-        errDiv.style.padding = '20px';
-        errDiv.style.zIndex = '99999999';
-        errDiv.style.fontFamily = 'monospace';
-        errDiv.style.fontSize = '14px';
-        errDiv.style.boxSizing = 'border-box';
-        errDiv.style.whiteSpace = 'pre-wrap';
-        errDiv.innerHTML = '<strong>Unhandled Promise Rejection:</strong> ' + e.reason;
-        document.body.appendChild(errDiv);
-      });
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL-Exam</title>
+  <script>
+    window.addEventListener('error', function (e) {
+      if (e.message && (
+        e.message.indexOf('ResizeObserver') !== -1 ||
+        e.message.indexOf('loop completed with undelivered notifications') !== -1
+      )) {
+        return;
+      }
+      var errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '0';
+      errDiv.style.left = '0';
+      errDiv.style.width = '100%';
+      errDiv.style.background = '#ffe3e3';
+      errDiv.style.color = '#d32f2f';
+      errDiv.style.padding = '20px';
+      errDiv.style.zIndex = '99999999';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontSize = '14px';
+      errDiv.style.boxSizing = 'border-box';
+      errDiv.style.whiteSpace = 'pre-wrap';
+      errDiv.innerHTML = '<strong>Unhandled Error:</strong> ' + e.message + '\nStack: ' + (e.error ? e.error.stack : 'N/A');
+      document.body.appendChild(errDiv);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      if (e.reason && e.reason.message && (
+        e.reason.message.indexOf('ResizeObserver') !== -1 ||
+        e.reason.message.indexOf('loop completed with undelivered notifications') !== -1
+      )) {
+        return;
+      }
+      var errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '0';
+      errDiv.style.left = '0';
+      errDiv.style.width = '100%';
+      errDiv.style.background = '#ffe3e3';
+      errDiv.style.color = '#d32f2f';
+      errDiv.style.padding = '20px';
+      errDiv.style.zIndex = '99999999';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontSize = '14px';
+      errDiv.style.boxSizing = 'border-box';
+      errDiv.style.whiteSpace = 'pre-wrap';
+      errDiv.innerHTML = '<strong>Unhandled Promise Rejection:</strong> ' + e.reason;
+      document.body.appendChild(errDiv);
+    });
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

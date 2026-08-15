@@ -150,7 +150,7 @@ const SubmissionSchema = new mongoose.Schema({
   submitted_at: { type: Date, default: null },
   created_at: { type: Date, default: Date.now }
 });
-SubmissionSchema.index({ student_id: 1, exam_id: 1 }, { unique: true });
+SubmissionSchema.index({ student_id: 1, exam_id: 1 });
 const Submission = mongoose.model('Submission', SubmissionSchema);
 
 // SubmissionAnswer Schema

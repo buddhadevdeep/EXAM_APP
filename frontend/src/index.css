@@ -87,8 +87,15 @@ body.light-mode {
 
 /* Micro Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animated-fade {
@@ -125,7 +132,8 @@ body.light-mode {
   transition: all 0.2s;
 }
 
-.sidebar .nav-link:hover, .sidebar .nav-link.active {
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
   opacity: 1;
   background: rgba(13, 110, 253, 0.15);
   color: var(--primary-color);
@@ -175,8 +183,13 @@ body.light-mode {
 }
 
 @keyframes loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Secure Exam Enforced Fullscreen & Overlays */
@@ -308,6 +321,7 @@ body.blurred-screen {
 .text-gradient {
   background: linear-gradient(135deg, var(--primary-color), #ec4899) !important;
   -webkit-background-clip: text !important;
+  background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   display: inline-block !important;
 }
@@ -316,6 +330,7 @@ body.blurred-screen {
 .dark-mode .navbar-brand {
   color: var(--text-light) !important;
 }
+
 .light-mode .navbar-brand {
   color: var(--text-dark) !important;
 }
@@ -329,7 +344,7 @@ body.blurred-screen {
     z-index: 1040;
     transform: translateX(-100%);
   }
-  
+
   .sidebar.open {
     transform: translateX(0);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
@@ -351,8 +366,13 @@ body.blurred-screen {
 }
 
 @keyframes backdropFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Button Styling overrides */
@@ -512,4 +532,60 @@ body.blurred-screen {
   transform: translateY(-1px) !important;
 }
 
+/* Question Pool Card Styling */
+.question-pool-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: var(--bg-card-light) !important;
+  border: 1.5px solid var(--border-light) !important;
+  color: var(--text-dark) !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 185px;
+}
 
+.dark-mode .question-pool-card {
+  background: rgba(15, 23, 42, 0.45) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  color: var(--text-light) !important;
+}
+
+.question-pool-card.selected {
+  border-color: var(--primary-color) !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2) !important;
+}
+
+.question-pool-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* View Transition System for Eye-Friendly Smooth Theme Toggle (Bottom-Left to Top-Right Sweep) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 1.2s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation-name: reveal-theme-switch;
+  mix-blend-mode: normal;
+}
+
+@keyframes reveal-theme-switch {
+  from {
+    clip-path: circle(0% at 0% 100%);
+  }
+
+  to {
+    clip-path: circle(150% at 0% 100%);
+  }
+}

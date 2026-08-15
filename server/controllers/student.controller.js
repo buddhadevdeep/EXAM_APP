@@ -35,7 +35,7 @@ exports.getAvailableExams = async (req, res, next) => {
     const [subjects, teachers, submissions] = await Promise.all([
       MongoSubject.find({ _id: { $in: subjectIds } }).lean(),
       MongoTeacher.find({ _id: { $in: teacherIds } }).lean(),
-      MongoSubmission.find({ exam_id: { $in: examIds }, student_id: student.id }).lean()
+      MongoSubmission.find({ exam_id: { $in: examIds }, student_id: student.id }).sort({ created_at: 1 }).lean()
     ]);
 
     const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
@@ -44,12 +44,25 @@ exports.getAvailableExams = async (req, res, next) => {
 
     const mappedResult = filteredExams.map(e => {
       const sub = submissionMap.get(e._id);
+      let status = sub ? sub.status : null;
+
+      // If the latest submission attempt is completed, but the exam was updated/republished after the submission:
+      // Allow the student to start a new exam attempt (status = null)
+      if (status && (status === 'Submitted' || status === 'Graded') && e.is_published === 1 && e.is_closed === 0) {
+        const subCreatedAt = sub.created_at ? new Date(sub.created_at) : new Date(0);
+        const examUpdatedAt = e.updated_at ? new Date(e.updated_at) : new Date(0);
+        
+        if (examUpdatedAt > new Date(subCreatedAt.getTime() + 2000)) {
+          status = null;
+        }
+      }
+
       return {
         ...e,
         id: e._id,
         subject_name: subjectMap.get(e.subject_id) || '',
         teacher_name: teacherMap.get(e.teacher_id) || '',
-        submission_status: sub ? sub.status : null,
+        submission_status: status,
         submission_id: sub ? sub._id : null
       };
     });
@@ -104,8 +117,18 @@ exports.getExamDetails = async (req, res, next) => {
       return res.status(403).json({ message: 'Invalid exam entry passcode. Access Denied.' });
     }
 
-    // Create or get submission draft
-    const submission = await Submission.createDraftOrGet(student.id, examId);
+    // Retrieve requested attempt or get/create a new draft
+    const { Submission: MongoSubmission } = require('../models/mongoose.model');
+    let submission;
+    const submissionId = req.query.submissionId;
+    if (submissionId) {
+      submission = await MongoSubmission.findById(submissionId).lean();
+      if (submission) {
+        submission.id = submission._id;
+      }
+    } else {
+      submission = await Submission.createDraftOrGet(student.id, examId);
+    }
 
     // If final submission is already done, return answers too
     const answers = await Submission.getAnswers(submission.id);

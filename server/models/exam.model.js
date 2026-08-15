@@ -145,6 +145,7 @@ class Exam {
       }
     });
     if (Object.keys(updateObj).length > 0) {
+      updateObj.updated_at = new Date();
       await MongoExam.findByIdAndUpdate(id, { $set: updateObj });
     }
   }
@@ -152,19 +153,54 @@ class Exam {
 
 class Submission {
   static async createDraftOrGet(studentId, examId) {
-    let submission = await MongoSubmission.findOne({ student_id: studentId, exam_id: examId }).lean();
-    if (submission) {
+    const submissions = await MongoSubmission.find({ student_id: studentId, exam_id: examId })
+      .sort({ created_at: -1 })
+      .lean();
+
+    const activeSub = submissions.find(s => s.status === 'Draft' || s.status === 'PendingVerification');
+    if (activeSub) {
       return {
-        ...submission,
-        id: submission._id
+        ...activeSub,
+        id: activeSub._id
       };
     }
+
+    if (submissions.length > 0) {
+      const latestSub = submissions[0];
+      const exam = await MongoExam.findById(examId).lean();
+      if (exam && exam.is_published === 1 && exam.is_closed === 0) {
+        const subCreatedAt = latestSub.created_at ? new Date(latestSub.created_at) : new Date(0);
+        const examUpdatedAt = exam.updated_at ? new Date(exam.updated_at) : new Date(0);
+
+        if (examUpdatedAt > new Date(subCreatedAt.getTime() + 2000)) {
+          const nextId = await getNextSequenceValue('submissions');
+          const subDoc = await MongoSubmission.create({
+            _id: nextId,
+            student_id: studentId,
+            exam_id: examId,
+            status: 'Draft',
+            created_at: new Date()
+          });
+          return {
+            ...subDoc.toObject(),
+            id: subDoc._id
+          };
+        }
+      }
+
+      return {
+        ...latestSub,
+        id: latestSub._id
+      };
+    }
+
     const nextId = await getNextSequenceValue('submissions');
     const subDoc = await MongoSubmission.create({
       _id: nextId,
       student_id: studentId,
       exam_id: examId,
-      status: 'Draft'
+      status: 'Draft',
+      created_at: new Date()
     });
     return {
       ...subDoc.toObject(),
@@ -232,7 +268,7 @@ class Submission {
 
     const finalSubmissions = [];
     const processedStudentIds = new Set();
-    const isExpired = exam.is_closed === 1 || exam.is_published === 0 || (exam.end_time && new Date() > new Date(exam.end_time));
+    const isExpired = exam.is_closed === 1 || (exam.end_time && new Date() > new Date(exam.end_time));
 
     // 1. Add all existing submissions (Draft, Submitted, Graded)
     for (const sub of submissions) {
@@ -262,9 +298,6 @@ class Submission {
 
       if (isAssigned(s)) {
         let status = 'Not Started';
-        if (isExpired) {
-          status = 'Absent';
-        }
 
         finalSubmissions.push({
           id: `virtual_${s._id}`,
@@ -288,7 +321,6 @@ class Submission {
     if (!student) return [];
 
     const submissions = await MongoSubmission.find({ student_id: studentId }).lean();
-    const subMap = new Map(submissions.map(sub => [sub.exam_id, sub]));
 
     // Fetch all active (published and not closed) exams
     const activeExams = await MongoExam.find({ is_published: 1, is_closed: 0 }).lean();
@@ -334,57 +366,73 @@ class Submission {
 
     const feedbackMap = new Map(feedbackDocs.map(f => [f.submission_id, f.comments]));
 
-    // Now map them: we want to map all exams that the student is assigned to!
-    const results = allExams.map(e => {
-      const sub = subMap.get(e._id);
-      
-      let status = 'Not Started';
-      let submissionId = null;
-      let submittedAt = null;
-      let marksObtained = 0;
-      let teacherComments = null;
+    const results = [];
+    const startedExamIds = new Set();
 
-      const isExpired = e.is_closed === 1 || e.is_published === 0 || (e.end_time && new Date() > new Date(e.end_time));
+    // Add actual submissions
+    for (const sub of submissions) {
+      startedExamIds.add(sub.exam_id);
+      const e = examMap.get(sub.exam_id);
+      if (!e) continue;
 
-      if (sub) {
-        submissionId = sub._id;
-        submittedAt = sub.submitted_at;
-        marksObtained = marksSumMap.get(sub._id) || 0;
-        teacherComments = feedbackMap.get(sub._id) || null;
-        
-        if (sub.status === 'Draft') {
-          if (isExpired) {
-            status = 'Absent'; // Closed/expired and still draft means Absent
-          } else {
-            status = 'In Progress'; // Active and draft means In Progress
-          }
-        } else {
-          status = sub.status; // Submitted, Graded, PendingVerification
-        }
-      } else {
+      const isExpired = e.is_closed === 1 || (e.end_time && new Date() > new Date(e.end_time));
+
+      let status = sub.status;
+      if (status === 'Draft') {
         if (isExpired) {
-          status = 'Absent'; // Closed/expired and not started means Absent
+          status = 'Absent'; // Closed/expired and still draft means Absent
         } else {
-          status = 'Not Started'; // Active and not started means Not Started
+          status = 'In Progress'; // Active and draft means In Progress
         }
       }
 
-      return {
-        id: submissionId || `temp-${e._id}`,
+      results.push({
+        id: sub._id,
         exam_id: e._id,
         exam_title: e.title,
         total_marks: e.total_marks,
         duration_minutes: e.duration_minutes,
         subject_name: subjectMap.get(e.subject_id) || '',
         status,
-        submitted_at: submittedAt,
-        marks_obtained: status === 'Graded' ? marksObtained : null,
-        teacher_comments: teacherComments,
+        submitted_at: sub.submitted_at,
+        marks_obtained: status === 'Graded' ? (marksSumMap.get(sub._id) || 0) : null,
+        teacher_comments: feedbackMap.get(sub._id) || null,
         is_closed: e.is_closed
-      };
+      });
+    }
+
+    // Add active assigned exams that have NOT been started yet
+    for (const e of assignedExams) {
+      if (startedExamIds.has(e._id)) continue;
+
+      results.push({
+        id: `temp-${e._id}`,
+        exam_id: e._id,
+        exam_title: e.title,
+        total_marks: e.total_marks,
+        duration_minutes: e.duration_minutes,
+        subject_name: subjectMap.get(e.subject_id) || '',
+        status: 'Not Started',
+        submitted_at: null,
+        marks_obtained: null,
+        teacher_comments: null,
+        is_closed: e.is_closed
+      });
+    }
+
+    // Filter out closed/expired exams that only have a Draft/Absent status so they are removed from the student view
+    const filteredResults = results.filter(r => {
+      if (r.status === 'Absent' || r.status === 'Not Started') {
+        const exam = examMap.get(r.exam_id);
+        const isExpired = exam.is_closed === 1 || (exam.end_time && new Date() > new Date(exam.end_time));
+        if (isExpired) {
+          return false;
+        }
+      }
+      return true;
     });
 
-    return results;
+    return filteredResults;
   }
 
   static async getSubmissionDetails(submissionId) {

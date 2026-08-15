@@ -194,3 +194,24 @@ exports.logout = async (req, res, next) => {
   }
 };
 
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { fullName } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (user.role_name !== 'Teacher') {
+      return res.status(403).json({ message: 'Only teachers can update their profile name.' });
+    }
+
+    await Teacher.update(user.id, { fullName });
+    await UtilityModel.logActivity(user.id, 'Update Profile', `User updated their full name to ${fullName}`);
+
+    return res.status(200).json({ message: 'Profile updated successfully.', name: fullName });
+  } catch (error) {
+    next(error);
+  }
+};
+

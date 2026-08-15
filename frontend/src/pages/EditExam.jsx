@@ -226,28 +226,28 @@ const EditExam = () => {
       </div>
 
       {/* Stepper Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4 bg-white p-3 shadow-sm" style={{ borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)' }}>
+      <div className="d-flex justify-content-between align-items-center mb-4 glass-card p-3">
         <div className="d-flex align-items-center gap-2 cursor-pointer" onClick={() => step > 1 && setStep(1)}>
           <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
-            step === 1 ? 'bg-primary text-white shadow-sm scale-up' : step > 1 ? 'bg-success text-white' : 'bg-light text-muted'
+            step === 1 ? 'bg-primary text-white shadow-sm scale-up' : step > 1 ? 'bg-success text-white' : 'bg-secondary bg-opacity-25 text-muted'
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             {step > 1 ? '✓' : '1'}
           </div>
           <span className={`small fw-bold ${step === 1 ? 'text-primary' : 'text-muted'}`}>1. Exam Profile</span>
         </div>
-        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed" style={{ opacity: 0.5 }} />
+        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed border-secondary" style={{ opacity: 0.3 }} />
         <div className="d-flex align-items-center gap-2 cursor-pointer" onClick={() => step > 2 && setStep(2)}>
           <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
-            step === 2 ? 'bg-primary text-white shadow-sm scale-up' : step > 2 ? 'bg-success text-white' : 'bg-light text-muted'
+            step === 2 ? 'bg-primary text-white shadow-sm scale-up' : step > 2 ? 'bg-success text-white' : 'bg-secondary bg-opacity-25 text-muted'
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             {step > 2 ? '✓' : '2'}
           </div>
           <span className={`small fw-bold ${step === 2 ? 'text-primary' : 'text-muted'}`}>2. Security & Schema</span>
         </div>
-        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed" style={{ opacity: 0.5 }} />
+        <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed border-secondary" style={{ opacity: 0.3 }} />
         <div className="d-flex align-items-center gap-2">
           <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all ${
-            step === 3 ? 'bg-primary text-white shadow-sm scale-up' : 'bg-light text-muted'
+            step === 3 ? 'bg-primary text-white shadow-sm scale-up' : 'bg-secondary bg-opacity-25 text-muted'
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             3
           </div>
@@ -590,9 +590,9 @@ const EditExam = () => {
                     padding: '4px'
                   }}>
                     {questions.map((q) => (
-                      <div key={q.id} className={`card border p-3 cursor-pointer transition-all ${
-                        selectedQuestions.includes(q.id) ? 'border-primary bg-primary-subtle' : 'border-light-subtle bg-white'
-                      }`} style={{ borderRadius: '16px', display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '10px', minHeight: '185px' }} onClick={() => handleToggleQuestion(q.id)}>
+                      <div key={q.id} className={`question-pool-card cursor-pointer ${
+                        selectedQuestions.includes(q.id) ? 'selected' : ''
+                      }`} onClick={() => handleToggleQuestion(q.id)}>
                         <input 
                           type="checkbox" className="form-check-input mt-1" 
                           checked={selectedQuestions.includes(q.id)}

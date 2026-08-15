@@ -8,7 +8,12 @@ mongoose.set('bufferCommands', false);
 
 const dbPromise = mongoose.connect(MONGODB_URI).then(async (m) => {
   console.log('Connected to MongoDB Atlas successfully.');
-  await initializeDatabase();
+  const shouldSeed = process.env.NODE_ENV !== 'production' || process.env.SEED_DB === 'true';
+  if (shouldSeed) {
+    initializeDatabase().catch(err => {
+      console.error('Database seeding warning:', err.message);
+    });
+  }
   return m;
 }).catch(async (err) => {
   console.error('\n=========================================');
@@ -27,7 +32,12 @@ const dbPromise = mongoose.connect(MONGODB_URI).then(async (m) => {
   try {
     const m = await mongoose.connect('mongodb://127.0.0.1:27017/smart_sql_exam');
     console.log('Connected to local MongoDB successfully.');
-    await initializeDatabase();
+    const shouldSeed = process.env.NODE_ENV !== 'production' || process.env.SEED_DB === 'true';
+    if (shouldSeed) {
+      initializeDatabase().catch(err => {
+        console.error('Local Database seeding warning:', err.message);
+      });
+    }
     return m;
   } catch (localErr) {
     console.error('Local MongoDB Connection Failed: ', localErr.message);
@@ -208,6 +218,12 @@ async function initializeDatabase() {
     
     // Sync other collections
     const { Exam, ExamQuestion, Submission, SubmissionAnswer, Mark, Feedback, Notification, ActivityLog } = require('../models/mongoose.model');
+    try {
+      await Submission.collection.dropIndex('student_id_1_exam_id_1');
+      console.log('Successfully dropped old unique submissions index.');
+    } catch (e) {
+      // Index might not exist or already dropped, ignore
+    }
     await syncCounter('exams', Exam);
     await syncCounter('exam_questions', ExamQuestion);
     await syncCounter('submissions', Submission);

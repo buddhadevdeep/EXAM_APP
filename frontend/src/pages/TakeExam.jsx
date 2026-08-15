@@ -17,6 +17,7 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [warningCount, setWarningCount] = useState(0);
   const navigate = useNavigate();
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
@@ -93,6 +94,7 @@ const TakeExam = () => {
 
   // Auto-restore fullscreen on any user click or keypress
   useEffect(() => {
+    if (isReadOnly) return;
     if (!isFullscreenActive) {
       const handleRestore = () => {
         startExamFullscreen();
@@ -191,6 +193,7 @@ const TakeExam = () => {
 
   // Anti-cheating listeners (screenshot blocking + tab leave monitor)
   useEffect(() => {
+    if (isReadOnly) return;
     // 1. Prevent copy/paste/context menu on the main page wrapper
     const handleCopyCut = (e) => {
       e.preventDefault();
@@ -413,10 +416,9 @@ const TakeExam = () => {
         const code = urlParams.get('code') || '';
         const res = await axios.get(`${API_BASE}/api/student/exams/${examId}?code=${code}`);
         
-        if (res.data.submission.status === 'Submitted' || res.data.submission.status === 'Graded') {
-          alert('This exam has already been submitted.');
-          navigate('/student/dashboard');
-          return;
+        const status = res.data.submission.status;
+        if (status === 'Submitted' || status === 'Graded') {
+          setIsReadOnly(true);
         }
 
         setData(res.data);
@@ -449,6 +451,7 @@ const TakeExam = () => {
   }, [examId]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     if (timeLeft === null || timeLeft <= 0) {
       if (timeLeft === 0) handleSubmitSilent();
       return;
@@ -475,6 +478,7 @@ const TakeExam = () => {
   };
 
   const handleQueryChange = (val) => {
+    if (isReadOnly) return;
     const qId = data.questions[currentIdx].id;
     setAnswers(prev => ({ ...prev, [qId]: val }));
     answersRef.current[qId] = val;
@@ -564,7 +568,7 @@ const TakeExam = () => {
 
   return (
     <div ref={examContainerRef} className={`fullscreen-exam-container ${isFullscreenActive ? 'is-fullscreen' : ''}`} style={{ position: 'relative', minHeight: '100vh' }}>
-      {!isFullscreenActive ? (
+      {!isFullscreenActive && !isReadOnly ? (
         <div 
           className="secure-overlay" 
           style={{ zIndex: 9999999, cursor: 'pointer', background: 'rgba(9, 13, 22, 0.98)', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
@@ -696,8 +700,8 @@ const TakeExam = () => {
                     <h3 className="fw-bold mb-0">{data.exam.title}</h3>
                     <span className="text-muted">{data.exam.subject_name}</span>
                   </div>
-                  <div className="card glass-card px-4 py-2 border-danger text-danger fw-bold fs-5" style={{ width: 'fit-content' }}>
-                    Time Left: {formatTime(timeLeft)}
+                  <div className={`card glass-card px-4 py-2 fw-bold fs-5 ${isReadOnly ? 'border-success text-success' : 'border-danger text-danger'}`} style={{ width: 'fit-content' }}>
+                    {isReadOnly ? `Exam Completed (${data.submission.status})` : `Time Left: ${formatTime(timeLeft)}`}
                   </div>
                 </div>
 
@@ -736,7 +740,8 @@ const TakeExam = () => {
                   <div className="col-md-7 mb-4">
                     <MonacoEditorWrapper 
                       value={answers[currentQuestion.id] || ''}
-                      onChange={handleQueryChange}
+                      onChange={isReadOnly ? undefined : handleQueryChange}
+                      readOnly={isReadOnly}
                     />
 
                     <div className="d-flex justify-content-between mt-3">
@@ -744,7 +749,7 @@ const TakeExam = () => {
                         className="btn btn-outline-secondary d-flex align-items-center gap-1"
                         disabled={currentIdx === 0}
                         onClick={() => {
-                          flushSave(currentQuestion.id);
+                          if (!isReadOnly) flushSave(currentQuestion.id);
                           setCurrentIdx(prev => prev - 1);
                         }}
                       >
@@ -755,20 +760,20 @@ const TakeExam = () => {
                         <button 
                           className="btn btn-outline-secondary d-flex align-items-center gap-1"
                           onClick={() => {
-                            flushSave(currentQuestion.id);
+                            if (!isReadOnly) flushSave(currentQuestion.id);
                             setCurrentIdx(prev => prev + 1);
                           }}
                         >
                           Next <FaChevronRight />
                         </button>
-                      ) : (
+                      ) : !isReadOnly ? (
                         <button 
                           className="btn btn-success d-flex align-items-center gap-2"
                           onClick={handleSubmit}
                         >
                           <FaCheckDouble /> Final Submit Exam
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>

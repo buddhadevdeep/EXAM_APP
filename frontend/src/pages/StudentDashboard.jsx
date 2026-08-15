@@ -123,9 +123,12 @@ const StudentDashboard = () => {
               )}
 
               {exam.submission_status === 'Submitted' || exam.submission_status === 'Graded' ? (
-                <div className="btn btn-secondary disabled w-100 d-flex align-items-center justify-content-center gap-2">
-                  <FaCheckCircle /> Submission Received
-                </div>
+                <button 
+                  onClick={() => navigate(`/student/exams/${exam.id}`)}
+                  className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                >
+                  <FaCheckCircle /> View Submission
+                </button>
               ) : (
                 <button 
                   onClick={() => handleStartExam(exam)} 

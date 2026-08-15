@@ -19,16 +19,43 @@ export const AuthProvider = ({ children }) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 
+  const isFirstRender = React.useRef(true);
+
   useEffect(() => {
     const root = window.document.body;
-    if (darkMode) {
-      root.classList.add('dark-mode');
-      root.classList.remove('light-mode');
-      localStorage.setItem('theme', 'dark');
+    
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (darkMode) {
+        root.classList.add('dark-mode');
+        root.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        root.classList.add('light-mode');
+        root.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+      }
+      return;
+    }
+
+    const applyThemeChange = () => {
+      if (darkMode) {
+        root.classList.add('dark-mode');
+        root.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        root.classList.add('light-mode');
+        root.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+      }
+    };
+
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        applyThemeChange();
+      });
     } else {
-      root.classList.add('light-mode');
-      root.classList.remove('dark-mode');
-      localStorage.setItem('theme', 'light');
+      applyThemeChange();
     }
   }, [darkMode]);
 

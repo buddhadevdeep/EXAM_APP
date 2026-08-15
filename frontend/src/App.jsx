@@ -72,7 +72,12 @@ const AppLayout = () => {
     );
   }
   
-  if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
+  if (!user) {
+    if (location.pathname !== '/login') {
+      return <Navigate to="/login" replace />;
+    }
+    return <Routes><Route path="/login" element={<Login />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
+  }
 
   const isExamPage = location.pathname.startsWith('/student/exams/');
 

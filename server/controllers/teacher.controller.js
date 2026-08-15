@@ -94,11 +94,15 @@ exports.getTeacherExams = async (req, res, next) => {
     const subjects = await MongoSubject.find({ _id: { $in: subjectIds } }).lean();
     const subjectMap = new Map(subjects.map(s => [s._id, s.name]));
 
-    const mapped = exams.map(e => ({
-      ...e,
-      id: e._id,
-      subject_name: subjectMap.get(e.subject_id) || ''
-    }));
+    const mapped = exams.map(e => {
+      const isExpired = e.end_time && new Date() > new Date(e.end_time);
+      return {
+        ...e,
+        id: e._id,
+        is_published: isExpired ? 0 : e.is_published,
+        subject_name: subjectMap.get(e.subject_id) || ''
+      };
+    });
 
     return res.status(200).json(mapped);
   } catch (error) {
@@ -110,14 +114,21 @@ exports.updateExamStatus = async (req, res, next) => {
   try {
     const { examId } = req.params;
     const { isPublished, isClosed } = req.body;
+
+    const { Exam: MongoExam } = require('../models/mongoose.model');
+    const existingExam = await MongoExam.findById(examId).lean();
+    if (!existingExam) {
+      return res.status(404).json({ message: 'Exam not found.' });
+    }
+
     const updates = {};
     if (isPublished !== undefined) updates.is_published = isPublished ? 1 : 0;
     if (isClosed !== undefined) updates.is_closed = isClosed ? 1 : 0;
 
     await Exam.update(examId, updates);
 
-    // If reopening, reset existing submissions to Draft state and clear previous answer history so students start fresh
-    if (isClosed === 0) {
+    // If reopening (transition from closed to open), reset existing submissions to Draft state and clear previous answer history so students start fresh
+    if (existingExam.is_closed === 1 && isClosed === 0) {
       const { Submission: MongoSubmission, SubmissionAnswer: MongoSubmissionAnswer } = require('../models/mongoose.model');
       
       // Get all submission IDs for this exam

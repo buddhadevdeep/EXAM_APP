@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaGraduationCap, FaRegCommentDots } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const StudentSubmissions = () => {
   const { cachedSubmissions, setCachedSubmissions } = useAuth();
@@ -45,7 +46,11 @@ const StudentSubmissions = () => {
             <tbody>
               {submissions.map((sub) => (
                 <tr key={sub.id}>
-                  <td><strong>{sub.exam_title}</strong></td>
+                  <td>
+                    <Link to={`/student/exams/${sub.exam_id}?submissionId=${sub.id}`} className="text-decoration-none text-primary fw-semibold">
+                      {sub.exam_title}
+                    </Link>
+                  </td>
                   <td>{sub.subject_name}</td>
                   <td>
                     {sub.submitted_at ? (() => {
