@@ -16,6 +16,15 @@ const StudentManagement = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const redirectTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchStudents = async () => {
     try {
@@ -114,7 +123,7 @@ const StudentManagement = () => {
           setSuccess('Student registered successfully!');
         }
       }
-      setTimeout(() => {
+      redirectTimeoutRef.current = setTimeout(() => {
         setShowModal(false);
         fetchStudents();
       }, 1500);
