@@ -24,7 +24,7 @@ app.use(morgan('dev'));
 // CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://sql-exam.vercel.app",
+  "https://sql-exam.netlify.app",
   process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : ""
 ].filter(Boolean);
 
@@ -35,6 +35,7 @@ app.use(cors({
     if (
       !origin || 
       allowedOrigins.includes(normalizedOrigin) || 
+      normalizedOrigin.endsWith(".netlify.app") ||
       normalizedOrigin.endsWith(".vercel.app")
     ) {
       callback(null, true);
