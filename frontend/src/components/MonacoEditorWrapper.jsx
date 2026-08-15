@@ -6,11 +6,9 @@ const MonacoEditorWrapper = ({ value, onChange, readOnly = false }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wordWrap, setWordWrap] = useState('on');
   const [editorInstance, setEditorInstance] = useState(null);
-  const [monacoInstance, setMonacoInstance] = useState(null);
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = (editor) => {
     setEditorInstance(editor);
-    setMonacoInstance(monaco);
     if (value !== undefined && value !== null) {
       editor.setValue(value);
     }
@@ -32,11 +30,11 @@ const MonacoEditorWrapper = ({ value, onChange, readOnly = false }) => {
   };
 
   const pasteFromClipboard = async () => {
-    if (editorInstance && monacoInstance && !readOnly) {
+    if (editorInstance && !readOnly) {
       const text = await navigator.clipboard.readText();
       const position = editorInstance.getPosition();
       editorInstance.executeEdits('my-source', [{
-        range: new monacoInstance.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+        range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
         text: text,
         forceMoveMarkers: true
       }]);

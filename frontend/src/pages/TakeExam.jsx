@@ -25,18 +25,6 @@ const TakeExam = () => {
   const lastWarningTimeRef = useRef(0);
   const saveTimeoutRef = useRef({});
   const answersRef = useRef({});
-  const handleSubmitSilentRef = useRef(null);
-
-  // Synchronize dynamic states in refs to prevent stale closures in event listeners
-  const showViolationModalRef = useRef(showViolationModal);
-  useEffect(() => {
-    showViolationModalRef.current = showViolationModal;
-  }, [showViolationModal]);
-
-  const isWaitingVerificationRef = useRef(isWaitingVerification);
-  useEffect(() => {
-    isWaitingVerificationRef.current = isWaitingVerification;
-  }, [isWaitingVerification]);
 
   const incrementWarningSafe = (reason) => {
     const now = Date.now();
@@ -49,11 +37,7 @@ const TakeExam = () => {
       const next = prev + 1;
       if (next >= 3) {
         alert(`Security Alert: ${reason}. Your exam is being automatically submitted.`);
-        exitFullscreen().then(() => {
-          if (handleSubmitSilentRef.current) {
-            handleSubmitSilentRef.current();
-          }
-        });
+        exitFullscreen().then(() => handleSubmitSilent());
       }
       return next;
     });
@@ -122,50 +106,27 @@ const TakeExam = () => {
     }
   }, [isFullscreenActive]);
 
-  // Polling using recursive setTimeout with AbortController prevents request accumulation
   useEffect(() => {
-    let active = true;
-    let timeoutId = null;
-    let abortController = null;
-
-    const checkStatus = async () => {
-      if (!isWaitingVerification || !data?.submission?.id || !active) return;
-      
-      abortController = new AbortController();
-      try {
-        const res = await axios.get(
-          `${API_BASE}/api/student/exams/submission-status/${data.submission.id}`,
-          { signal: abortController.signal }
-        );
-        if (active) {
+    let interval;
+    if (isWaitingVerification && data?.submission?.id) {
+      interval = setInterval(async () => {
+        try {
+          const res = await axios.get(`${API_BASE}/api/student/exams/submission-status/${data.submission.id}`);
           if (res.data.status === 'Submitted') {
+            clearInterval(interval);
             isSubmittingRef.current = true;
             alert('Exam submitted and verified successfully!');
             navigate('/student/dashboard');
-            return;
           }
-        }
-      } catch (err) {
-        if (!axios.isCancel(err)) {
+        } catch (err) {
           console.error('Error checking verification status:', err);
         }
-      }
-
-      if (active && isWaitingVerification) {
-        timeoutId = setTimeout(checkStatus, 2000);
-      }
-    };
-
-    if (isWaitingVerification && data?.submission?.id) {
-      timeoutId = setTimeout(checkStatus, 2000);
+      }, 2000);
     }
-
     return () => {
-      active = false;
-      if (timeoutId) clearTimeout(timeoutId);
-      if (abortController) abortController.abort();
+      if (interval) clearInterval(interval);
     };
-  }, [isWaitingVerification, data?.submission?.id, navigate]);
+  }, [isWaitingVerification, data, navigate]);
 
 
 
@@ -230,8 +191,6 @@ const TakeExam = () => {
 
   // Anti-cheating listeners (screenshot blocking + tab leave monitor)
   useEffect(() => {
-    if (!data) return;
-
     // 1. Prevent copy/paste/context menu on the main page wrapper
     const handleCopyCut = (e) => {
       e.preventDefault();
@@ -318,7 +277,7 @@ const TakeExam = () => {
           document.msFullscreenElement
         );
         
-        if (isFs && !showViolationModalRef.current) {
+        if (isFs && !showViolationModal) {
           setShowViolationModal(true);
           incrementWarningSafe('You pressed blocked keys');
         }
@@ -330,7 +289,7 @@ const TakeExam = () => {
         e.preventDefault();
         e.stopPropagation();
         
-        if (!showViolationModalRef.current) {
+        if (!showViolationModal) {
           setShowViolationModal(true);
           incrementWarningSafe('You pressed blocked keys');
         }
@@ -359,10 +318,10 @@ const TakeExam = () => {
       
       setIsFullscreenActive(isFs);
 
-      if (isSubmittingRef.current && !isWaitingVerificationRef.current) return;
+      if (isSubmittingRef.current && !isWaitingVerification) return;
 
       if (isFullscreenActiveRef.current && !isFs) {
-        if (isWaitingVerificationRef.current) return; // Skip warning count/alerts during verification
+        if (isWaitingVerification) return; // Skip warning count/alerts during verification
         setShowViolationModal(false); // Hide the fullscreen violation modal if we went windowed (blocker will cover it)
         incrementWarningSafe('You exited fullscreen mode');
       }
@@ -426,7 +385,7 @@ const TakeExam = () => {
       // Save current question answer draft immediately to ensure latest is in DB
       const currentQId = data.questions[currentIdx]?.id;
       if (currentQId) {
-        const currentVal = answersRef.current[currentQId] || '';
+        const currentVal = answers[currentQId] || '';
         try {
           await axios.post(`${API_BASE}/api/student/exams/save-draft`, {
             submissionId: data.submission.id,
@@ -446,9 +405,6 @@ const TakeExam = () => {
       console.error(err);
     }
   };
-
-  // Sync the silent submit ref on every render to circumvent stale closures in event listeners and timers
-  handleSubmitSilentRef.current = handleSubmitSilent;
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -492,46 +448,18 @@ const TakeExam = () => {
     fetchExam();
   }, [examId]);
 
-  // Unified timer hook runs on a single interval reference
   useEffect(() => {
-    if (timeLeft === null) return;
-    if (timeLeft <= 0) {
-      if (timeLeft === 0 && handleSubmitSilentRef.current) {
-        handleSubmitSilentRef.current();
-      }
+    if (timeLeft === null || timeLeft <= 0) {
+      if (timeLeft === 0) handleSubmitSilent();
       return;
     }
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setTimeout(() => {
-            if (handleSubmitSilentRef.current) {
-              handleSubmitSilentRef.current();
-            }
-          }, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft(prev => prev - 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [data]);
+  }, [timeLeft, data]);
 
-  // Clear all pending saves when component unmounts
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        for (const qId of Object.keys(saveTimeoutRef.current)) {
-          if (saveTimeoutRef.current[qId]) {
-            clearTimeout(saveTimeoutRef.current[qId]);
-          }
-        }
-      }
-    };
-  }, []);
-
-  const flushSave = React.useCallback((qId) => {
+  const flushSave = (qId) => {
     if (saveTimeoutRef.current[qId]) {
       clearTimeout(saveTimeoutRef.current[qId]);
       delete saveTimeoutRef.current[qId];
@@ -544,10 +472,9 @@ const TakeExam = () => {
     }).catch(err => {
       console.error('Failed to save draft on flush (bg):', err);
     });
-  }, [data]);
+  };
 
-  const handleQueryChange = React.useCallback((val) => {
-    if (!data?.questions?.[currentIdx]) return;
+  const handleQueryChange = (val) => {
     const qId = data.questions[currentIdx].id;
     setAnswers(prev => ({ ...prev, [qId]: val }));
     answersRef.current[qId] = val;
@@ -568,8 +495,8 @@ const TakeExam = () => {
       } finally {
         delete saveTimeoutRef.current[qId];
       }
-    }, 5000);
-  }, [data, currentIdx]);
+    }, 1000);
+  };
 
   const confirmAndSubmit = async () => {
     try {
@@ -605,6 +532,7 @@ const TakeExam = () => {
       isSubmittingRef.current = false;
     }
   };
+
 
   const handleSubmit = () => {
     setShowSubmitConfirm(true);

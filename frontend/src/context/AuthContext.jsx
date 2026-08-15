@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [cachedTeacherExams, setCachedTeacherExams] = useState(null);
   const [cachedAdminStats, setCachedAdminStats] = useState(null);
 
-  // Setup default headers
+  // Setup default headersfi
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }

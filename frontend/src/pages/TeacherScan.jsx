@@ -20,8 +20,6 @@ const TeacherScan = () => {
     }
   };
 
-  const retryTimeoutRef = useRef(null);
-
   useEffect(() => {
     const html5Qrcode = new Html5Qrcode('qr-reader');
     scannerRef.current = html5Qrcode;
@@ -45,7 +43,7 @@ const TeacherScan = () => {
                   navigate(`/verify-submission/${match[1]}`);
                 } else {
                   setError('Invalid QR Code format. Please scan a valid exam submission QR.');
-                  retryTimeoutRef.current = setTimeout(startScanner, 3000);
+                  setTimeout(startScanner, 3000);
                 }
               });
             } catch (err) {
@@ -67,9 +65,6 @@ const TeacherScan = () => {
 
     return () => {
       stopScanner();
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
     };
   }, [navigate]);
 

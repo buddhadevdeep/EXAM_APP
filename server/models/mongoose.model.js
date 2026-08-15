@@ -129,7 +129,6 @@ ExamSchema.pre('save', function() {
   this.updated_at = Date.now();
 });
 ExamSchema.index({ is_published: 1, is_closed: 1, end_time: 1 });
-ExamSchema.index({ teacher_id: 1 });
 const Exam = mongoose.model('Exam', ExamSchema);
 
 // ExamQuestion Schema
@@ -152,7 +151,6 @@ const SubmissionSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 SubmissionSchema.index({ student_id: 1, exam_id: 1 }, { unique: true });
-SubmissionSchema.index({ exam_id: 1 });
 const Submission = mongoose.model('Submission', SubmissionSchema);
 
 // SubmissionAnswer Schema
