@@ -19,7 +19,7 @@ const isLocal = Boolean(
 const API_BASE = import.meta.env.VITE_API_URL || (
   isLocal
     ? `http://${window.location.hostname}:5000`
-    : 'https://exam-app-roan-seven.vercel.app' // Deployed backend URL
+    : 'https://exam-app-tau-ten.vercel.app/' // Deployed backend URL
 );
 
 export default API_BASE;
