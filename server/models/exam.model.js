@@ -212,7 +212,7 @@ class Submission {
     const updated = await MongoSubmissionAnswer.findOneAndUpdate(
       { submission_id: submissionId, question_id: questionId },
       { $set: { sql_query: sqlQuery, submitted_at: new Date() } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!updated) {
       const nextId = await getNextSequenceValue('submission_answers');

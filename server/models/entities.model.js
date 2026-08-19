@@ -55,7 +55,7 @@ class Teacher {
     const updateData = {};
     if (fullName !== undefined) updateData.full_name = fullName;
     if (department !== undefined) updateData.department = department;
-    return MongoTeacher.findOneAndUpdate({ user_id: userId }, { $set: updateData }, { new: true });
+    return MongoTeacher.findOneAndUpdate({ user_id: userId }, { $set: updateData }, { returnDocument: 'after' });
   }
 }
 
