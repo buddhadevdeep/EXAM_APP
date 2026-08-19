@@ -7,13 +7,12 @@ import { useAuth } from '../context/AuthContext';
 
 const TeacherDashboard = () => {
   const { cachedTeacherExams, setCachedTeacherExams } = useAuth();
-  const [exams, setExams] = useState(cachedTeacherExams || []);
-  const [loading, setLoading] = useState(!cachedTeacherExams);
+  const exams = cachedTeacherExams || [];
+  const [loading, setLoading] = useState(exams.length === 0);
 
   const fetchExams = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/teacher/exams`);
-      setExams(res.data);
       setCachedTeacherExams(res.data);
     } catch (err) {
       console.error(err);
@@ -33,7 +32,14 @@ const TeacherDashboard = () => {
         isPublished: currentPublished ? 1 : 0,
         isClosed: currentClosed ? 1 : 0
       });
-      fetchExams();
+      // Update context cache directly to trigger immediate UI state update
+      setCachedTeacherExams(prev => 
+        (prev || []).map(exam => 
+          exam.id === examId 
+            ? { ...exam, is_published: currentPublished ? 1 : 0, is_closed: currentClosed ? 1 : 0 }
+            : exam
+        )
+      );
     } catch (err) {
       console.error(err);
     }
@@ -44,7 +50,10 @@ const TeacherDashboard = () => {
     try {
       await axios.delete(`${API_BASE}/api/teacher/exams/${examId}`);
       alert('Exam deleted successfully!');
-      fetchExams();
+      // Update context cache directly to trigger immediate UI state update
+      setCachedTeacherExams(prev => 
+        (prev || []).filter(exam => exam.id !== examId)
+      );
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting exam.');
     }

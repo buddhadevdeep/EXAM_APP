@@ -7,8 +7,8 @@ import { useAuth } from '../context/AuthContext';
 
 const StudentDashboard = () => {
   const { cachedExams, setCachedExams } = useAuth();
-  const [exams, setExams] = useState(cachedExams || []);
-  const [loading, setLoading] = useState(!cachedExams);
+  const exams = cachedExams || [];
+  const [loading, setLoading] = useState(exams.length === 0);
   const navigate = useNavigate();
 
   // Custom Modal States
@@ -21,7 +21,6 @@ const StudentDashboard = () => {
     const fetchExams = async () => {
       try {
         const res = await axios.get(`${API_BASE}/api/student/exams`);
-        setExams(res.data);
         setCachedExams(res.data);
       } catch (err) {
         console.error(err);
