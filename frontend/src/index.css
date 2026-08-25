@@ -111,12 +111,12 @@ body.light-mode {
 }
 
 .dark-mode .sidebar {
-  background: var(--bg-card-dark);
+  background: rgba(15, 23, 42, 0.96) !important;
   border-color: var(--border-dark);
 }
 
 .light-mode .sidebar {
-  background: var(--bg-card-light);
+  background: rgba(248, 250, 252, 0.98) !important;
   border-color: var(--border-light);
 }
 
@@ -621,4 +621,30 @@ body.blurred-screen {
   to {
     clip-path: circle(150% at 0% 100%);
   }
+}
+
+/* Teacher identity responsiveness navbar styling */
+.navbar-user-name {
+  max-width: 65px;
+}
+
+@media (min-width: 576px) {
+  .navbar-user-name {
+    max-width: 180px;
+  }
+}
+
+/* Opaque and readable modal backgrounds on forms */
+.modal-content.glass-card {
+  backdrop-filter: blur(16px) !important;
+}
+
+.dark-mode .modal-content.glass-card {
+  background: rgba(15, 23, 42, 0.96) !important;
+}
+
+.light-mode .modal-content.glass-card,
+body:not(.dark-mode) .modal-content.glass-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0f172a !important;
 }

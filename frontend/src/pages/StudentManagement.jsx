@@ -138,7 +138,8 @@ const StudentManagement = () => {
         </button>
       </div>
 
-      <div className="card glass-card p-4 shadow">
+      {/* Table view for desktops (>= 768px) */}
+      <div className="card glass-card p-4 shadow d-none d-md-block">
         <div className="table-responsive">
           <table className="table align-middle">
             <thead>
@@ -202,6 +203,61 @@ const StudentManagement = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Cards list view for mobile (< 768px) */}
+      <div className="d-block d-md-none">
+        {students.map((s) => (
+          <div key={s.user_id} className="card glass-card p-3 mb-3 shadow-sm border border-secondary border-opacity-10">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <div className="d-flex align-items-center gap-2">
+                <FaUserGraduate className="text-primary" />
+                <strong style={{ fontSize: '0.95rem' }}>{s.full_name}</strong>
+              </div>
+              <span className={`badge ${s.is_active ? 'bg-success text-white' : 'bg-danger text-white'}`} style={{ fontSize: '0.72rem' }}>
+                {s.is_active ? 'Active' : 'Suspended'}
+              </span>
+            </div>
+            
+            <div className="row g-2 mb-3 text-muted" style={{ fontSize: '0.8rem' }}>
+              <div className="col-12 text-truncate" title={s.email}>
+                <strong>Email:</strong> {s.email}
+              </div>
+              <div className="col-6">
+                <strong>Roll No:</strong> <span className="badge bg-secondary ms-1">{s.roll_number}</span>
+              </div>
+              <div className="col-6 text-end text-sm-start">
+                <strong>Class:</strong> <span className="badge bg-light text-dark border ms-1">{s.class_section}</span>
+              </div>
+            </div>
+
+            <div className="d-flex gap-2 justify-content-end border-top pt-2 flex-wrap">
+              <button 
+                className="btn btn-sm btn-outline-primary px-3 py-1.5"
+                onClick={() => handleOpenEdit(s)}
+              >
+                <FaEdit /> Edit
+              </button>
+              <button 
+                className={`btn btn-sm px-3 py-1.5 ${s.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                onClick={() => toggleStatus(s.user_id, s.is_active)}
+              >
+                {s.is_active ? <FaUserSlash /> : <FaUserCheck />} {s.is_active ? 'Suspend' : 'Activate'}
+              </button>
+              <button 
+                className="btn btn-sm btn-outline-danger px-3 py-1.5"
+                onClick={() => handleDelete(s.user_id, s.full_name)}
+              >
+                <FaTrash /> Delete
+              </button>
+            </div>
+          </div>
+        ))}
+        {students.length === 0 && (
+          <div className="card glass-card py-5 text-center text-muted shadow-sm">
+            No students found. Click "Register New Student" to enroll.
+          </div>
+        )}
       </div>
 
       {showModal && createPortal(
