@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const errorHandler = require('./middleware/error');
 const config = require('./config/config');
+const { dbPromise } = require('./config/db');
 
 const authRoutes = require('./routes/auth.route');
 const adminRoutes = require('./routes/admin.route');
@@ -57,6 +58,25 @@ app.use('/api', limiter);
 // Request Parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Database connection check middleware for API requests
+app.use('/api', async (req, res, next) => {
+  try {
+    await dbPromise;
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        message: 'Database connection is not ready. If this is a new deployment, please ensure that your deployment server IP is whitelisted in your MongoDB Atlas Network Access configuration.'
+      });
+    }
+    next();
+  } catch (error) {
+    res.status(503).json({
+      message: 'Failed to connect to the database.',
+      error: error.message
+    });
+  }
+});
 
 // Routing API endpoints
 app.use('/api/auth', authRoutes);
