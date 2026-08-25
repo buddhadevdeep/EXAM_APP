@@ -37,7 +37,7 @@ const Navbar = ({ onToggleSidebar }) => {
               {darkMode ? <FaSun className="text-warning" size={18} /> : <FaMoon className="text-primary" size={18} />}
             </button>
           )}
-          <div className="text-end">
+          <div className="text-end d-none d-sm-block">
             <div className="fw-semibold">{user?.name}</div>
             <div className="text-muted small" style={{ fontSize: '0.75rem' }}>{user?.role}</div>
           </div>

@@ -555,7 +555,7 @@ body.blurred-screen {
   .question-pool-card {
     min-height: unset !important;
     padding: 12px !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
   }
 
   .monaco-toolbar {
@@ -573,6 +573,10 @@ body.blurred-screen {
   border-radius: 6px !important;
   padding: 6px 10px !important;
   min-height: unset !important;
+}
+
+.question-pool-card>div {
+  min-width: 0;
 }
 
 .dark-mode .question-pool-card {

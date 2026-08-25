@@ -233,7 +233,7 @@ const EditExam = () => {
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             {step > 1 ? '✓' : '1'}
           </div>
-          <span className={`small fw-bold ${step === 1 ? 'text-primary' : 'text-muted'}`}>1. Exam Profile</span>
+          <span className={`small fw-bold d-none d-sm-inline ${step === 1 ? 'text-primary' : 'text-muted'}`}>1. Exam Profile</span>
         </div>
         <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed border-secondary" style={{ opacity: 0.3 }} />
         <div className="d-flex align-items-center gap-2 cursor-pointer" onClick={() => step > 2 && setStep(2)}>
@@ -242,7 +242,7 @@ const EditExam = () => {
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             {step > 2 ? '✓' : '2'}
           </div>
-          <span className={`small fw-bold ${step === 2 ? 'text-primary' : 'text-muted'}`}>2. Security & Schema</span>
+          <span className={`small fw-bold d-none d-sm-inline ${step === 2 ? 'text-primary' : 'text-muted'}`}>2. Security & Schema</span>
         </div>
         <div className="flex-grow-1 mx-3 border-bottom border-2 border-dashed border-secondary" style={{ opacity: 0.3 }} />
         <div className="d-flex align-items-center gap-2">
@@ -251,7 +251,7 @@ const EditExam = () => {
           }`} style={{ width: '35px', height: '35px', fontSize: '0.9rem' }}>
             3
           </div>
-          <span className={`small fw-bold ${step === 3 ? 'text-primary' : 'text-muted'}`}>3. Questions Pool</span>
+          <span className={`small fw-bold d-none d-sm-inline ${step === 3 ? 'text-primary' : 'text-muted'}`}>3. Questions Pool</span>
         </div>
       </div>
 
@@ -611,9 +611,9 @@ const EditExam = () => {
                               Solution: {q.sql_template}
                             </div>
                           </div>
-                          <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-                            <span className="badge bg-light text-dark border small" style={{ fontSize: '0.7rem' }}>{q.subject_name}</span>
-                            <div className="btn-group btn-group-sm" onClick={e => e.stopPropagation()}>
+                          <div className="d-flex flex-column flex-sm-row gap-2 justify-content-between align-items-start align-items-sm-center mt-2 pt-2 border-top">
+                            <span className="badge bg-light text-dark border small text-wrap text-start" style={{ fontSize: '0.7rem', maxWidth: '100%' }}>{q.subject_name}</span>
+                            <div className="btn-group btn-group-sm w-100 w-sm-auto justify-content-end" onClick={e => e.stopPropagation()}>
                               <button 
                                 type="button" className="btn btn-link text-primary p-0 px-2 fw-semibold"
                                 onClick={() => {
@@ -657,15 +657,17 @@ const EditExam = () => {
             </div>
 
             {/* Navigation buttons */}
-            <div className="col-12 d-flex justify-content-between mt-3">
+            <div className="col-12 d-flex justify-content-between align-items-center gap-2 mt-3">
               <button 
-                type="button" className="btn btn-outline-secondary px-4 py-2"
+                type="button" className="btn btn-outline-secondary px-4 py-2 d-flex align-items-center justify-content-center"
                 onClick={() => setStep(2)}
+                style={{ height: '48px' }}
               >
                 ← Back
               </button>
               <button 
-                type="submit" className="btn btn-success px-5 py-2 shadow d-flex align-items-center gap-2"
+                type="submit" className="btn btn-success px-4 px-sm-5 py-2 shadow d-flex align-items-center justify-content-center gap-2"
+                style={{ height: '48px' }}
               >
                 <FaSave /> Save Changes
               </button>
