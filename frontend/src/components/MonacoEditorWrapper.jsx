@@ -55,34 +55,34 @@ const MonacoEditorWrapper = ({ value, onChange, readOnly = false }) => {
 
   return (
     <div className={`card glass-card p-3 mb-4 ${isFullscreen ? 'position-fixed top-0 start-0 w-100 h-100 z-3' : ''}`}>
-      <div className="d-flex justify-content-between align-items-center mb-2">
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-2">
         <span className="fw-bold">SQL Query Editor</span>
-        <div className="btn-group btn-group-sm">
-          <button className="btn btn-outline-secondary" title="Copy" onClick={copyToClipboard}>
+        <div className="monaco-toolbar">
+          <button className="btn btn-sm btn-outline-secondary" title="Copy" onClick={copyToClipboard}>
             <FaCopy />
           </button>
           {!readOnly && (
             <>
-              <button className="btn btn-outline-secondary" title="Paste" onClick={pasteFromClipboard}>
+              <button className="btn btn-sm btn-outline-secondary" title="Paste" onClick={pasteFromClipboard}>
                 <FaPaste />
               </button>
-              <button className="btn btn-outline-secondary" title="Undo" onClick={handleUndo}>
+              <button className="btn btn-sm btn-outline-secondary" title="Undo" onClick={handleUndo}>
                 <FaUndo />
               </button>
-              <button className="btn btn-outline-secondary" title="Redo" onClick={handleRedo}>
+              <button className="btn btn-sm btn-outline-secondary" title="Redo" onClick={handleRedo}>
                 <FaRedo />
               </button>
             </>
           )}
           <button 
-            className={`btn ${wordWrap === 'on' ? 'btn-secondary' : 'btn-outline-secondary'}`} 
+            className={`btn btn-sm ${wordWrap === 'on' ? 'btn-secondary' : 'btn-outline-secondary'}`} 
             title="Toggle Word Wrap" 
             onClick={() => setWordWrap(wordWrap === 'on' ? 'off' : 'on')}
           >
             <FaAlignLeft />
           </button>
           <button 
-            className="btn btn-outline-secondary" 
+            className="btn btn-sm btn-outline-secondary" 
             title="Toggle Fullscreen" 
             onClick={() => setIsFullscreen(!isFullscreen)}
           >

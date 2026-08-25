@@ -573,7 +573,7 @@ const CreateExam = () => {
                 <div className="flex-grow-1 pe-2 animate-fade" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'hidden' }}>
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
                     gap: '16px',
                     padding: '4px'
                   }}>

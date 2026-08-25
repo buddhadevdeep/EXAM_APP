@@ -65,6 +65,11 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return;
       }
+      // If user is already loaded (e.g. set by log in), skip redundant API verification
+      if (user) {
+        setLoading(false);
+        return;
+      }
       try {
         const res = await axios.get(`${API_BASE}/api/auth/profile`);
         setUser({
@@ -111,7 +116,7 @@ export const AuthProvider = ({ children }) => {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [token, user]);
+  }, [token, user?.id, user?.role]);
 
 
   const login = async (email, password) => {

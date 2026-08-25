@@ -81,13 +81,13 @@ const GradeSubmission = () => {
         {data.questions.map((q, index) => {
           const currentGrade = grades[index] || {};
           return (
-            <div key={q.id} className="card glass-card p-4 mb-4">
-              <div className="d-flex justify-content-between align-items-start mb-3">
+            <div key={q.id} className="card glass-card p-3 p-sm-4 mb-4">
+              <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                 <div>
-                  <h5 className="fw-bold">{q.title}</h5>
-                  <p className="text-muted mb-0">{q.description}</p>
+                  <h5 className="fw-bold mb-1">{q.title}</h5>
+                  <p className="text-muted mb-0 small">{q.description}</p>
                 </div>
-                <span className="badge bg-secondary">{q.points} Max Points</span>
+                <span className="badge bg-secondary text-nowrap">{q.points} Max Points</span>
               </div>
 
               <div className="row">

@@ -543,7 +543,36 @@ body.blurred-screen {
   flex-direction: row;
   align-items: flex-start;
   gap: 10px;
+  padding: 16px !important;
   min-height: 185px;
+}
+
+@media (max-width: 576px) {
+  main {
+    padding: 12px !important;
+  }
+
+  .question-pool-card {
+    min-height: unset !important;
+    padding: 12px !important;
+    flex-direction: column !important;
+  }
+
+  .monaco-toolbar {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+}
+
+.monaco-toolbar {
+  display: flex;
+  gap: 2px;
+}
+
+.monaco-toolbar .btn {
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  min-height: unset !important;
 }
 
 .dark-mode .question-pool-card {

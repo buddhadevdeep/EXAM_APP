@@ -23,6 +23,7 @@ const TakeExam = () => {
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
   const [showViolationModal, setShowViolationModal] = useState(false);
   const [showSchema, setShowSchema] = useState(false);
+  const [activeTab, setActiveTab] = useState('question'); // 'question' or 'editor' on mobile
   const lastWarningTimeRef = useRef(0);
   const saveTimeoutRef = useRef({});
   const answersRef = useRef({});
@@ -705,8 +706,26 @@ const TakeExam = () => {
                   </div>
                 </div>
 
+                {/* Mobile View Tab Toggles (hidden on desktop) */}
+                <div className="d-flex d-md-none mb-3 btn-group w-100 p-1 bg-secondary bg-opacity-10 rounded-3 shadow-sm border border-secondary border-opacity-10" style={{ backdropFilter: 'blur(5px)' }}>
+                  <button 
+                    type="button" 
+                    className={`btn py-2 btn-sm fw-bold ${activeTab === 'question' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+                    onClick={() => setActiveTab('question')}
+                  >
+                    📝 1. Question & Schema
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`btn py-2 btn-sm fw-bold ${activeTab === 'editor' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+                    onClick={() => setActiveTab('editor')}
+                  >
+                    💻 2. SQL Editor {answers[currentQuestion.id] ? '✓' : ''}
+                  </button>
+                </div>
+
                 <div className="row">
-                  <div className="col-md-5 mb-4">
+                  <div className={`col-md-5 mb-4 ${activeTab === 'question' ? '' : 'd-none d-md-block'}`}>
                     <div className="card glass-card p-4 mb-4">
                       <div className="d-flex justify-content-between align-items-center mb-3">
                         <span className="badge bg-secondary">Question {currentIdx + 1} of {data.questions.length}</span>
@@ -737,7 +756,7 @@ const TakeExam = () => {
                     <SmartHints sqlQuery={answers[currentQuestion.id] || ''} />
                   </div>
 
-                  <div className="col-md-7 mb-4">
+                  <div className={`col-md-7 mb-4 ${activeTab === 'editor' ? '' : 'd-none d-md-block'}`}>
                     <MonacoEditorWrapper 
                       value={answers[currentQuestion.id] || ''}
                       onChange={isReadOnly ? undefined : handleQueryChange}

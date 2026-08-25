@@ -26,22 +26,27 @@ const TeacherDashboard = () => {
   }, []);
 
   const toggleStatus = async (examId, currentPublished, currentClosed) => {
+    const originalExams = [...exams];
+    
+    // Optimistically update context cache directly for instant UI update
+    setCachedTeacherExams(prev => 
+      (prev || []).map(exam => 
+        exam.id === examId 
+          ? { ...exam, is_published: currentPublished ? 1 : 0, is_closed: currentClosed ? 1 : 0 }
+          : exam
+      )
+    );
+
     try {
-      // Toggle publish or close state
       await axios.put(`${API_BASE}/api/teacher/exams/${examId}/status`, {
         isPublished: currentPublished ? 1 : 0,
         isClosed: currentClosed ? 1 : 0
       });
-      // Update context cache directly to trigger immediate UI state update
-      setCachedTeacherExams(prev => 
-        (prev || []).map(exam => 
-          exam.id === examId 
-            ? { ...exam, is_published: currentPublished ? 1 : 0, is_closed: currentClosed ? 1 : 0 }
-            : exam
-        )
-      );
     } catch (err) {
       console.error(err);
+      alert(err.response?.data?.message || 'Failed to update exam status.');
+      // Revert if API fails
+      setCachedTeacherExams(originalExams);
     }
   };
 
