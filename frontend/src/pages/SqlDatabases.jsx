@@ -223,7 +223,7 @@ const SqlDatabases = () => {
 
   return (
     <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <h2 className="fw-bold mb-1 text-primary d-flex align-items-center gap-2">
             <FaDatabase /> SQL Databases
@@ -271,7 +271,7 @@ const SqlDatabases = () => {
               </div>
             </div>
 
-            <div className="d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-20 pb-2 mb-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 border-bottom border-secondary border-opacity-20 pb-2 mb-4">
               <h5 className="fw-bold text-info mb-0 d-flex align-items-center gap-2">
                 <FaTable /> Table Definitions ({tables.length})
               </h5>
@@ -282,7 +282,7 @@ const SqlDatabases = () => {
 
             {tables.map((table, tIdx) => (
               <div key={tIdx} className="card glass-card p-3 mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                   <div className="d-flex align-items-center gap-3">
                     <span className="badge bg-secondary">Table #{tIdx + 1}</span>
                     <input 
@@ -303,7 +303,7 @@ const SqlDatabases = () => {
                 <div className="row g-3">
                   {/* Columns Section */}
                   <div className="col-lg-7">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-2">
                       <span className="text-muted small fw-bold text-uppercase">Columns</span>
                       <button type="button" className="btn btn-xs btn-outline-secondary py-0 px-2" style={{ fontSize: '0.75rem' }} onClick={() => handleAddColumn(tIdx)}>
                         + Add Column

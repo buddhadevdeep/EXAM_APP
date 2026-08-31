@@ -42,6 +42,7 @@ const TakeSqlAssignment = () => {
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [showTablePreview, setShowTablePreview] = useState(null); // Table object to preview
+  const [activeTab, setActiveTab] = useState('question'); // 'question' | 'editor'
 
   const autoSaveTimerRef = useRef(null);
 
@@ -317,10 +318,30 @@ const TakeSqlAssignment = () => {
         </div>
       </div>
 
-      <div className="row g-0" style={{ minHeight: 'calc(100vh - 66px)' }}>
+      {/* Mobile View Tab Toggles (hidden on desktop) */}
+      <div className="d-flex d-lg-none mx-3 mt-3 btn-group bg-secondary bg-opacity-10 rounded-3 shadow-sm border border-secondary border-opacity-10" style={{ backdropFilter: 'blur(5px)' }}>
+        <button 
+          type="button" 
+          className={`btn py-2 btn-sm fw-bold ${activeTab === 'question' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+          onClick={() => setActiveTab('question')}
+        >
+          📝 1. Task & Schema
+        </button>
+        <button 
+          type="button" 
+          className={`btn py-2 btn-sm fw-bold ${activeTab === 'editor' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+          onClick={() => setActiveTab('editor')}
+        >
+          💻 2. SQL Workspace {answers.find(a => a.question_idx === activeQIdx)?.submitted_query.trim().length > 0 ? '✓' : ''}
+        </button>
+      </div>
+
+      <div className="row g-0 flex-grow-1" style={{ minHeight: 'calc(100vh - 66px)' }}>
         
         {/* Left Side: Question, Schema & Accordion */}
         <div className={`col-lg-5 p-4 d-flex flex-column justify-content-between border-end ${
+          activeTab === 'question' ? '' : 'd-none d-lg-flex'
+        } ${
           darkMode ? 'border-secondary border-opacity-20' : 'border-light'
         }`} style={{ maxHeight: 'calc(100vh - 66px)', overflowY: 'auto' }}>
           <div>
@@ -430,7 +451,9 @@ const TakeSqlAssignment = () => {
         </div>
 
         {/* Right Side: SQL Query Workspace */}
-        <div className="col-lg-7 d-flex flex-column" style={{ maxHeight: 'calc(100vh - 66px)' }}>
+        <div className={`col-lg-7 d-flex flex-column ${
+          activeTab === 'editor' ? '' : 'd-none d-lg-flex'
+        }`} style={{ maxHeight: 'calc(100vh - 66px)' }}>
           {/* Query input panel */}
           <div className={`p-4 border-bottom d-flex flex-column h-50 ${
             darkMode ? 'border-secondary border-opacity-20' : 'border-light'

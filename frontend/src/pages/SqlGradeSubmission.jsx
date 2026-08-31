@@ -109,7 +109,7 @@ const SqlGradeSubmission = () => {
 
   return (
     <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <button className="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 mb-2" onClick={() => navigate('/teacher/sql-grades')}>
             <FaArrowLeft /> Back to Grades list
@@ -145,7 +145,7 @@ const SqlGradeSubmission = () => {
                 <div key={idx} className="card glass-card p-4 mb-4 border border-secondary border-opacity-15 rounded-3 shadow">
                   
                   {/* Task details */}
-                  <div className="d-flex justify-content-between align-items-baseline mb-3">
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-baseline gap-2 mb-3">
                     <h5 className="fw-bold text-info font-monospace mb-0">Task #{idx + 1}</h5>
                     <div className="d-flex gap-2">
                       {hasManualMarks ? (

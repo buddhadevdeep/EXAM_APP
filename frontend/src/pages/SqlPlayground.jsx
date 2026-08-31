@@ -383,9 +383,27 @@ const SqlPlayground = () => {
         </div>
       </div>
 
+      {/* Mobile View Tab Toggles (hidden on desktop) */}
+      <div className="d-flex d-lg-none mb-3 btn-group w-100 p-1 bg-secondary bg-opacity-10 rounded-3 shadow-sm border border-secondary border-opacity-10" style={{ backdropFilter: 'blur(5px)' }}>
+        <button 
+          type="button" 
+          className={`btn py-2 btn-sm fw-bold ${activeTab === 'schema' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+          onClick={() => setActiveTab('schema')}
+        >
+          📋 1. Active Schema
+        </button>
+        <button 
+          type="button" 
+          className={`btn py-2 btn-sm fw-bold ${activeTab === 'editor' ? 'btn-primary' : 'bg-transparent text-secondary border-0'}`}
+          onClick={() => setActiveTab('editor')}
+        >
+          💻 2. Sandbox Editor
+        </button>
+      </div>
+
       <div className="row">
         {/* Left column: Schema navigator & database browser */}
-        <div className="col-lg-3 mb-4">
+        <div className={`col-lg-3 mb-4 ${activeTab === 'schema' ? '' : 'd-none d-lg-block'}`}>
           <div className="card glass-card p-3 h-100 shadow-sm border border-secondary border-opacity-10 d-flex flex-column" style={{ minHeight: '500px' }}>
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 border-bottom pb-2">
               <FaTable size={18} className="text-success" /> Active Database Schema
@@ -450,7 +468,7 @@ const SqlPlayground = () => {
         </div>
 
         {/* Right column: SQL Editor & Output */}
-        <div className="col-lg-9 mb-4">
+        <div className={`col-lg-9 mb-4 ${activeTab === 'editor' ? '' : 'd-none d-lg-block'}`}>
           {selectedSchema?.description && (
             <div className="card glass-card p-3 mb-3 border border-info border-opacity-35 bg-info bg-opacity-5">
               <h6 className="fw-bold mb-1 text-info d-flex align-items-center gap-2">
