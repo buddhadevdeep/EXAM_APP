@@ -32,7 +32,7 @@ const Submissions = () => {
         <FaArrowLeft /> Back
       </button>
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <h3 className="fw-bold">Student Submissions</h3>
         <a href={`${API_BASE}/api/teacher/exams/${examId}/export?token=${localStorage.getItem('token')}`} className="btn btn-success d-flex align-items-center gap-2">
           <FaDownload /> Export Marks (Excel)

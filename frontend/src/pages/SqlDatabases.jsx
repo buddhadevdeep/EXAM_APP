@@ -442,7 +442,7 @@ const SqlDatabases = () => {
                 {databases.map(db => (
                   <div key={db._id} className="col-12">
                     <div className="card glass-card p-3 border border-secondary border-opacity-10 hover-pulse shadow">
-                      <div className="d-flex justify-content-between align-items-start">
+                      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-3">
                         <div>
                           <h5 className="fw-bold mb-1 text-info d-flex align-items-center gap-2">
                             <FaDatabase /> {db.name}

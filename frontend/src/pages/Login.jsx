@@ -84,7 +84,7 @@ const Login = () => {
       </button>
 
       <div className="d-flex flex-column align-items-center" style={{ maxWidth: '480px', width: '100%' }}>
-        <h1 className="fw-bold mb-4 text-center text-gradient text-uppercase animate-fade" style={{ letterSpacing: '2px', fontSize: '2.1rem', whiteSpace: 'nowrap' }}>
+        <h1 className="fw-bold mb-4 text-center text-gradient text-uppercase animate-fade" style={{ letterSpacing: '2px', fontSize: 'clamp(1.5rem, 5vw, 2.1rem)' }}>
           SQL Practice & Exam Hub
         </h1>
 
