@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const alasql = require('alasql');
+// Configure alaSQL for case-insensitive table/column handling
+alasql.options.casesensitive = false;
+
 const { 
   SqlDatabase, 
   SqlAssignment, 
@@ -15,23 +18,24 @@ function compareSqlResults(resA, resB, hasOrderBy) {
   if (resA.length !== resB.length) return false;
   if (resA.length === 0) return true;
 
-  const keysA = Object.keys(resA[0]);
-  const keysB = Object.keys(resB[0]);
-  if (keysA.length !== keysB.length) return false;
-  for (const k of keysA) {
-    if (!keysB.includes(k)) return false;
-  }
-
   const cleanRow = (row) => {
     const obj = {};
     for (const k of Object.keys(row)) {
-      obj[k] = row[k] === null || row[k] === undefined ? null : String(row[k]).trim();
+      const val = row[k];
+      obj[k.toLowerCase()] = val === null || val === undefined ? null : String(val).trim().toLowerCase();
     }
     return obj;
   };
 
   const cleanA = resA.map(cleanRow);
   const cleanB = resB.map(cleanRow);
+
+  const keysA = Object.keys(cleanA[0]);
+  const keysB = Object.keys(cleanB[0]);
+  if (keysA.length !== keysB.length) return false;
+  for (const k of keysA) {
+    if (!keysB.includes(k)) return false;
+  }
 
   if (hasOrderBy) {
     for (let i = 0; i < cleanA.length; i++) {
@@ -62,13 +66,13 @@ function executeInSandbox(database, sqlQuery) {
   const dbId = 'gradetest_db_' + Math.random().toString(36).substring(2, 9);
   
   // Create database
-  alasql(`CREATE DATABASE ${dbId}; USE ${dbId};`);
+  alasql(`CREATE DATABASE IF NOT EXISTS ${dbId}; USE ${dbId};`);
   
   try {
     // Populate schema and rows
     for (const table of database.tables) {
       const colDefs = table.columns.map(c => `[${c.name}] ${c.type}`).join(', ');
-      alasql(`CREATE TABLE [${table.name}] (${colDefs});`);
+      alasql(`CREATE TABLE IF NOT EXISTS [${table.name}] (${colDefs});`);
       
       if (table.rows && table.rows.length > 0) {
         alasql(`INSERT INTO [${table.name}] SELECT * FROM ?`, [table.rows]);

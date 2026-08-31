@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import API_BASE from '../config/api';
 import alasql from 'alasql';
+// Configure alaSQL for case-insensitive table/column handling
+alasql.options.casesensitive = false;
+
 import { 
   FaDatabase, FaPlay, FaSave, FaCheck, FaExclamationTriangle, 
   FaInfoCircle, FaArrowLeft, FaArrowRight, FaTable, FaLightbulb 
@@ -146,10 +149,10 @@ const TakeSqlAssignment = () => {
 
   const initLocalDatabase = (dbObj) => {
     try {
-      window.alasql(`CREATE DATABASE ${localDbId}; USE ${localDbId};`);
+      window.alasql(`CREATE DATABASE IF NOT EXISTS ${localDbId}; USE ${localDbId};`);
       for (const t of dbObj.tables) {
         const cols = t.columns.map(c => `[${c.name}] ${c.type}`).join(', ');
-        window.alasql(`CREATE TABLE [${t.name}] (${cols});`);
+        window.alasql(`CREATE TABLE IF NOT EXISTS [${t.name}] (${cols});`);
         if (t.rows && t.rows.length > 0) {
           window.alasql(`INSERT INTO [${t.name}] SELECT * FROM ?`, [t.rows]);
         }

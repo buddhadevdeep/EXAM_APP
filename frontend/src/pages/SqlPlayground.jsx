@@ -9,6 +9,8 @@ import {
 import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import alasql from 'alasql';
 window.alasql = alasql;
+// Configure alaSQL for case-insensitive table/column handling
+alasql.options.casesensitive = false;
 
 const DEFAULT_SCHEMAS = [
   {
@@ -142,7 +144,7 @@ const SqlPlayground = () => {
     try {
       // Create a brand new clean database context
       const dbId = 'practice_db_' + Math.random().toString(36).substring(2, 9);
-      window.alasql(`CREATE DATABASE ${dbId}; USE ${dbId};`);
+      window.alasql(`CREATE DATABASE IF NOT EXISTS ${dbId}; USE ${dbId};`);
       customDbRef.current = dbId;
       
       // Execute DDL/DML statements
@@ -154,7 +156,14 @@ const SqlPlayground = () => {
         .filter(s => s.length > 0);
 
       for (const stmt of splitStmts) {
-        window.alasql(stmt);
+        const stmtLower = stmt.toLowerCase().trim();
+        let processedStmt = stmt;
+        if (stmtLower.startsWith('create table ') && !stmtLower.startsWith('create table if not exists')) {
+          processedStmt = stmt.replace(/create\s+table/i, 'CREATE TABLE IF NOT EXISTS');
+        } else if (stmtLower.startsWith('create database ') && !stmtLower.startsWith('create database if not exists')) {
+          processedStmt = stmt.replace(/create\s+database/i, 'CREATE DATABASE IF NOT EXISTS');
+        }
+        window.alasql(processedStmt);
       }
 
       setQueryResult(null);

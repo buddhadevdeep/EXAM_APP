@@ -8,6 +8,8 @@ import SmartHints from '../components/SmartHints';
 import { useAuth } from '../context/AuthContext';
 import alasql from 'alasql';
 window.alasql = alasql;
+// Configure alaSQL for case-insensitive table/column handling
+alasql.options.casesensitive = false;
 
 const TakeExam = () => {
   const { examId } = useParams();
@@ -505,11 +507,18 @@ const TakeExam = () => {
     if (isPracticeMode && data?.exam?.database_schema) {
       try {
         const dbId = 'practice_exam_db_' + Math.random().toString(36).substring(2, 9);
-        window.alasql(`CREATE DATABASE ${dbId}; USE ${dbId};`);
+        window.alasql(`CREATE DATABASE IF NOT EXISTS ${dbId}; USE ${dbId};`);
         
         const statements = data.exam.database_schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
         for (const stmt of statements) {
-          window.alasql(stmt);
+          const stmtLower = stmt.toLowerCase().trim();
+          let processedStmt = stmt;
+          if (stmtLower.startsWith('create table ') && !stmtLower.startsWith('create table if not exists')) {
+            processedStmt = stmt.replace(/create\s+table/i, 'CREATE TABLE IF NOT EXISTS');
+          } else if (stmtLower.startsWith('create database ') && !stmtLower.startsWith('create database if not exists')) {
+            processedStmt = stmt.replace(/create\s+database/i, 'CREATE DATABASE IF NOT EXISTS');
+          }
+          window.alasql(processedStmt);
         }
         
         setAlasqlReady(true);
