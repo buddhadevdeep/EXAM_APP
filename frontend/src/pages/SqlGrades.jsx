@@ -92,7 +92,7 @@ const SqlGrades = () => {
           </div>
         ) : (
           <div className="table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
-            <table className="table align-middle mb-0">
+            <table className="table align-middle mb-0 text-nowrap">
               <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
                 <tr>
                   <th>Exam Title</th>
@@ -153,7 +153,7 @@ const SqlGrades = () => {
           </div>
         ) : (
           <div className="table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
-            <table className="table align-middle mb-0">
+            <table className="table align-middle mb-0 text-nowrap">
               <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
                 <tr>
                   <th>Student Details</th>

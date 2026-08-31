@@ -41,7 +41,7 @@ const Submissions = () => {
 
       <div className="card glass-card p-4">
         <div className="table-responsive">
-          <table className="table align-middle">
+          <table className="table align-middle text-nowrap">
             <thead>
               <tr>
                 <th>Student Name</th>

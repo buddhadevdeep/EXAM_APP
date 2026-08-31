@@ -52,7 +52,7 @@ const StudentSqlSubmissions = () => {
       ) : (
         <div className="card glass-card p-4">
           <div className="table-responsive">
-            <table className="table align-middle mb-0">
+            <table className="table align-middle mb-0 text-nowrap">
               <thead className="font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
                 <tr>
                   <th>Assignment</th>
