@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import alasql from 'alasql';
+import { validateSqlQuery } from '../utils/sqlValidator';
 window.alasql = alasql;
 // Configure alaSQL for case-insensitive table/column handling
 alasql.options.casesensitive = false;
@@ -235,6 +236,7 @@ const SqlPlayground = () => {
 
         let res = null;
         for (const idx in splitQueries) {
+          validateSqlQuery(splitQueries[idx]);
           res = window.alasql(splitQueries[idx]);
         }
 

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const alasql = require('alasql');
+const { validateSqlQuery } = require('../utils/sqlValidator');
 // Configure alaSQL for case-insensitive table/column handling
 alasql.options.casesensitive = false;
 
@@ -65,6 +66,12 @@ function compareSqlResults(resA, resB, hasOrderBy) {
 function executeInSandbox(database, sqlQuery) {
   const dbId = 'gradetest_db_' + Math.random().toString(36).substring(2, 9);
   
+  try {
+    validateSqlQuery(sqlQuery);
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+
   // Create database
   alasql(`CREATE DATABASE IF NOT EXISTS ${dbId}; USE ${dbId};`);
   

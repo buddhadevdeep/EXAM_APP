@@ -6,6 +6,8 @@ import alasql from 'alasql';
 // Configure alaSQL for case-insensitive table/column handling
 alasql.options.casesensitive = false;
 
+import { validateSqlQuery } from '../utils/sqlValidator';
+
 import { 
   FaDatabase, FaPlay, FaSave, FaCheck, FaExclamationTriangle, 
   FaInfoCircle, FaArrowLeft, FaArrowRight, FaTable, FaLightbulb 
@@ -182,6 +184,7 @@ const TakeSqlAssignment = () => {
     }
 
     try {
+      validateSqlQuery(activeQuery);
       window.alasql(`USE ${localDbId};`);
       const res = window.alasql(activeQuery);
       setRunResult(res);

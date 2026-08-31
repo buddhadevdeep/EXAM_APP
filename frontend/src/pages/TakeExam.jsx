@@ -7,6 +7,7 @@ import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import SmartHints from '../components/SmartHints';
 import { useAuth } from '../context/AuthContext';
 import alasql from 'alasql';
+import { validateSqlQuery } from '../utils/sqlValidator';
 window.alasql = alasql;
 // Configure alaSQL for case-insensitive table/column handling
 alasql.options.casesensitive = false;
@@ -554,6 +555,7 @@ const TakeExam = () => {
 
         let res = null;
         for (const q of splitQueries) {
+          validateSqlQuery(q);
           res = window.alasql(q);
         }
 
