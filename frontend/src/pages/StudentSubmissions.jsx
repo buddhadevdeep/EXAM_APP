@@ -31,9 +31,9 @@ const StudentSubmissions = () => {
     <div className="container mt-4 animated-fade">
       <h3 className="fw-bold mb-4">Your Exam History & Performance</h3>
 
-      <div className="card glass-card p-4">
-        <div className="table-responsive">
-          <table className="table align-middle">
+      <div className="card glass-card p-3 p-md-4">
+        <div className="d-none d-md-block table-responsive">
+          <table className="table align-middle text-nowrap">
             <thead>
               <tr>
                 <th>Exam Title</th>
@@ -67,7 +67,7 @@ const StudentSubmissions = () => {
                     })() : 'N/A'}
                   </td>
                   <td>
-                    <span className={`status-badge ${
+                    <span className={`status-badge px-2 py-1 ${
                       sub.status === 'Graded' ? 'bg-success text-white' : 
                       sub.status === 'In Progress' ? 'bg-warning text-dark' : 
                       sub.status === 'Not Started' ? 'bg-secondary text-white' : 
@@ -101,6 +101,58 @@ const StudentSubmissions = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="d-block d-md-none">
+          {submissions.length === 0 ? (
+            <div className="text-center py-4 text-muted">You have not submitted any exams yet.</div>
+          ) : (
+            submissions.map((sub) => (
+              <div key={sub.id} className="card glass-card p-3 mb-3 border border-secondary border-opacity-10 shadow-sm">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <Link to={`/student/exams/${sub.exam_id}?submissionId=${sub.id}`} className="text-decoration-none text-primary fw-bold fs-6">
+                    {sub.exam_title}
+                  </Link>
+                  <span className={`status-badge px-2 py-1 ${
+                    sub.status === 'Graded' ? 'bg-success text-white' : 
+                    sub.status === 'In Progress' ? 'bg-warning text-dark' : 
+                    sub.status === 'Not Started' ? 'bg-secondary text-white' : 
+                    sub.status === 'Absent' ? 'bg-danger text-white' : 
+                    'bg-primary text-white'
+                  }`}>
+                    {sub.status}
+                  </span>
+                </div>
+                
+                <div className="bg-dark bg-opacity-25 rounded p-2 mb-2 mt-2">
+                  <div className="d-flex justify-content-between mb-1">
+                    <span className="text-muted small fw-semibold text-uppercase">Score</span>
+                    {sub.status === 'Graded' ? (
+                      <span className="fw-bold text-success">{sub.marks_obtained !== null ? parseFloat(sub.marks_obtained) : 0} / {sub.total_marks}</span>
+                    ) : sub.status === 'Absent' ? (
+                       <span className="text-danger small fw-bold">Absent</span>
+                    ) : (
+                       <span className="text-muted small">Pending</span>
+                    )}
+                  </div>
+                  <div className="d-flex justify-content-between mb-1">
+                    <span className="text-muted small fw-semibold text-uppercase">Subject</span>
+                    <span className="small text-light fw-medium text-end">{sub.subject_name}</span>
+                  </div>
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted small fw-semibold text-uppercase">Time</span>
+                    <span className="small text-light text-end">
+                      {sub.submitted_at ? (() => {
+                        const d = new Date(sub.submitted_at);
+                        return isNaN(d.getTime()) ? sub.submitted_at : d.toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+                      })() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

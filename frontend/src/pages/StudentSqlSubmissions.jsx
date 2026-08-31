@@ -50,8 +50,8 @@ const StudentSqlSubmissions = () => {
           <p className="mb-0">No submissions found. Take an active SQL Assignment to see history!</p>
         </div>
       ) : (
-        <div className="card glass-card p-4">
-          <div className="table-responsive">
+        <div className="card glass-card p-3 p-md-4">
+          <div className="d-none d-md-block table-responsive">
             <table className="table align-middle mb-0 text-nowrap">
               <thead className="font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
                 <tr>
@@ -66,7 +66,6 @@ const StudentSqlSubmissions = () => {
               <tbody>
                 {submissions.map(sub => {
                   const isNotSubmitted = sub.status === 'Not Submitted';
-                  const totalPoints = isNotSubmitted ? 0 : sub.answers.reduce((sum, a) => sum + a.auto_marks, 0);
                   const earnedPoints = isNotSubmitted ? 0 : sub.final_marks;
                   
                   return (
@@ -121,6 +120,54 @@ const StudentSqlSubmissions = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="d-block d-md-none">
+            {submissions.map(sub => {
+              const isNotSubmitted = sub.status === 'Not Submitted';
+              const earnedPoints = isNotSubmitted ? 0 : sub.final_marks;
+              return (
+                <div key={sub._id} className="card glass-card p-3 mb-3 border border-secondary border-opacity-10 shadow-sm">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="fw-bold fs-6 text-info">{sub.assignment_title}</div>
+                    <span className={`badge ${isNotSubmitted ? 'bg-danger' : sub.status === 'Graded' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                      {sub.status}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-dark bg-opacity-25 rounded p-2 mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="text-muted small">Attempt:</span>
+                      <span className="badge bg-secondary">{isNotSubmitted ? 'N/A' : `#${sub.attempt_number}`}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="text-muted small">Date:</span>
+                      <span className="small text-light">{sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="text-muted small">Marks:</span>
+                      <div className="d-flex align-items-center gap-1">
+                        {!isNotSubmitted && <FaAward className={sub.status === 'Graded' ? 'text-success' : 'text-warning'} size={14} />}
+                        <span className="fw-bold text-light">{isNotSubmitted ? 'N/A' : `${earnedPoints} Pts`}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2">
+                    {isNotSubmitted ? (
+                      <button className="btn btn-sm btn-secondary w-100" disabled>No Submission</button>
+                    ) : (
+                      <button 
+                        className="btn btn-sm btn-outline-primary fw-bold w-100 d-flex align-items-center justify-content-center gap-2"
+                        onClick={() => navigate(`/student/sql-submissions/${sub._id}`)}
+                      >
+                        <FaEye /> Detailed View
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

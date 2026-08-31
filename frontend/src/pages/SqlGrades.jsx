@@ -91,58 +91,91 @@ const SqlGrades = () => {
             <p className="mb-0">No regular proctored exams found.</p>
           </div>
         ) : (
-          <div className="table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
-            <table className="table align-middle mb-0 text-nowrap">
-              <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
-                <tr>
-                  <th>Exam Title</th>
-                  <th>Subject</th>
-                  <th>Total Marks</th>
-                  <th>Duration</th>
-                  <th>Start / End Time</th>
-                  <th>Status</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {regularExams.map(exam => (
-                  <tr key={exam.id} className="border-bottom border-secondary border-opacity-10">
-                    <td>
-                      <span className="fw-bold text-info">{exam.title}</span>
-                    </td>
-                    <td>{exam.subject_name}</td>
-                    <td>
-                      <span className="fw-semibold text-warning">{exam.total_marks} Marks</span>
-                    </td>
-                    <td>{exam.duration_minutes} Mins</td>
-                    <td>
-                      <div className="small text-muted">
-                        <div>Start: {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Open'}</div>
-                        <div>End: {exam.end_time ? new Date(exam.end_time).toLocaleString() : 'Closed'}</div>
-                      </div>
-                    </td>
-                    <td>
-                      {new Date() > new Date(exam.end_time) ? (
-                        <span className="badge bg-secondary">Expired</span>
-                      ) : exam.is_published ? (
-                        <span className="badge bg-success">Active</span>
-                      ) : (
-                        <span className="badge bg-warning text-dark">Draft</span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      <button 
-                        className="btn btn-xs btn-primary fw-bold"
-                        onClick={() => navigate(`/teacher/exams/${exam.id}/submissions`)}
-                      >
-                        <FaClipboardCheck className="me-1" /> View Submissions
-                      </button>
-                    </td>
+          <>
+            <div className="d-none d-md-block table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
+              <table className="table align-middle mb-0 text-nowrap">
+                <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
+                  <tr>
+                    <th>Exam Title</th>
+                    <th>Subject</th>
+                    <th>Total Marks</th>
+                    <th>Duration</th>
+                    <th>Start / End Time</th>
+                    <th>Status</th>
+                    <th className="text-end">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {regularExams.map(exam => (
+                    <tr key={exam.id} className="border-bottom border-secondary border-opacity-10">
+                      <td>
+                        <span className="fw-bold text-info">{exam.title}</span>
+                      </td>
+                      <td>{exam.subject_name}</td>
+                      <td>
+                        <span className="fw-semibold text-warning">{exam.total_marks} Marks</span>
+                      </td>
+                      <td>{exam.duration_minutes} Mins</td>
+                      <td>
+                        <div className="small text-muted">
+                          <div>Start: {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Open'}</div>
+                          <div>End: {exam.end_time ? new Date(exam.end_time).toLocaleString() : 'Closed'}</div>
+                        </div>
+                      </td>
+                      <td>
+                        {new Date() > new Date(exam.end_time) ? (
+                          <span className="badge bg-secondary">Expired</span>
+                        ) : exam.is_published ? (
+                          <span className="badge bg-success">Active</span>
+                        ) : (
+                          <span className="badge bg-warning text-dark">Draft</span>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        <button 
+                          className="btn btn-xs btn-primary fw-bold"
+                          onClick={() => navigate(`/teacher/exams/${exam.id}/submissions`)}
+                        >
+                          <FaClipboardCheck className="me-1" /> View Submissions
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card List equivalent */}
+            <div className="d-block d-md-none">
+              {regularExams.map(exam => (
+                <div key={exam.id} className="card glass-card p-3 mb-3 border border-secondary border-opacity-10 shadow-sm">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <span className="fw-bold text-info fs-6">{exam.title}</span>
+                    {new Date() > new Date(exam.end_time) ? (
+                      <span className="badge bg-secondary">Expired</span>
+                    ) : exam.is_published ? (
+                      <span className="badge bg-success">Active</span>
+                    ) : (
+                      <span className="badge bg-warning text-dark">Draft</span>
+                    )}
+                  </div>
+                  <div className="text-muted small fw-medium mb-3">
+                    {exam.subject_name} &bull; {exam.total_marks} Marks &bull; {exam.duration_minutes} Mins
+                  </div>
+                  <div className="bg-dark bg-opacity-25 rounded p-2 mb-3">
+                    <div className="small text-muted mb-1"><span className="fw-semibold text-light">Start:</span> {exam.start_time ? new Date(exam.start_time).toLocaleString() : 'Open'}</div>
+                    <div className="small text-muted"><span className="fw-semibold text-light">End:</span> {exam.end_time ? new Date(exam.end_time).toLocaleString() : 'Closed'}</div>
+                  </div>
+                  <button 
+                    className="btn btn-sm btn-primary fw-bold w-100 d-flex align-items-center justify-content-center gap-2"
+                    onClick={() => navigate(`/teacher/exams/${exam.id}/submissions`)}
+                  >
+                    <FaClipboardCheck /> View Submissions
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )
       ) : (
         /* SQL Practice Submissions Section */
@@ -152,72 +185,121 @@ const SqlGrades = () => {
             <p className="mb-0">No student SQL practice submissions available for grading review.</p>
           </div>
         ) : (
-          <div className="table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
-            <table className="table align-middle mb-0 text-nowrap">
-              <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
-                <tr>
-                  <th>Student Details</th>
-                  <th>Assignment</th>
-                  <th>Attempt</th>
-                  <th>Submitted At</th>
-                  <th>Status</th>
-                  <th>Grades</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sqlSubmissions.map(sub => (
-                  <tr key={sub._id} className="border-bottom border-secondary border-opacity-10">
-                    <td>
-                      <div className="fw-bold text-white d-flex align-items-center gap-2">
-                        <FaUserGraduate className="text-muted" size={13} />
-                        <span>{sub.student_name}</span>
-                      </div>
-                      <span className="text-muted small">Roll No: {sub.student_roll}</span>
-                    </td>
-                    <td>
-                      <div className="fw-semibold text-info">{sub.assignment_title}</div>
-                      <span className="text-muted small">Sub ID: #{sub._id}</span>
-                    </td>
-                    <td>
-                      <span className="badge bg-secondary">Attempt #{sub.attempt_number}</span>
-                    </td>
-                    <td>
-                      <div className="small text-muted d-flex align-items-center gap-1">
-                        <FaCalendarAlt size={11} />
-                        <span>{new Date(sub.submitted_at).toLocaleString()}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        sub.status === 'Graded' ? 'bg-success' : 'bg-warning text-dark'
-                      }`}>
-                        {sub.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <FaAward className={sub.status === 'Graded' ? 'text-success' : 'text-warning'} />
-                        <span className="fw-bold">
-                          {sub.final_marks} / {sub.total_possible_marks} Marks
-                        </span>
-                      </div>
-                    </td>
-                    <td className="text-end">
-                      <button 
-                        className={`btn btn-xs fw-bold px-3 ${
-                          sub.status === 'Graded' ? 'btn-outline-info' : 'btn-primary'
-                        }`}
-                        onClick={() => navigate(`/teacher/sql-grades/${sub._id}`)}
-                      >
-                        {sub.status === 'Graded' ? 'Edit Grades' : 'Review & Grade'}
-                      </button>
-                    </td>
+          <>
+            <div className="d-none d-md-block table-responsive rounded border border-secondary border-opacity-10 shadow-lg">
+              <table className="table align-middle mb-0 text-nowrap">
+                <thead className="table-secondary bg-opacity-20 header-dark font-monospace text-uppercase" style={{ fontSize: '0.8rem' }}>
+                  <tr>
+                    <th>Student Details</th>
+                    <th>Assignment</th>
+                    <th>Attempt</th>
+                    <th>Submitted At</th>
+                    <th>Status</th>
+                    <th>Grades</th>
+                    <th className="text-end">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {sqlSubmissions.map(sub => (
+                    <tr key={sub._id} className="border-bottom border-secondary border-opacity-10">
+                      <td>
+                        <div className="fw-bold text-white d-flex align-items-center gap-2">
+                          <FaUserGraduate className="text-muted" size={13} />
+                          <span>{sub.student_name}</span>
+                        </div>
+                        <span className="text-muted small">Roll No: {sub.student_roll}</span>
+                      </td>
+                      <td>
+                        <div className="fw-semibold text-info">{sub.assignment_title}</div>
+                        <span className="text-muted small">Sub ID: #{sub._id}</span>
+                      </td>
+                      <td>
+                        <span className="badge bg-secondary">Attempt #{sub.attempt_number}</span>
+                      </td>
+                      <td>
+                        <div className="small text-muted d-flex align-items-center gap-1">
+                          <FaCalendarAlt size={11} />
+                          <span>{new Date(sub.submitted_at).toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          sub.status === 'Graded' ? 'bg-success' : 'bg-warning text-dark'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <FaAward className={sub.status === 'Graded' ? 'text-success' : 'text-warning'} />
+                          <span className="fw-bold">
+                            {sub.final_marks} / {sub.total_possible_marks} Marks
+                          </span>
+                        </div>
+                      </td>
+                      <td className="text-end">
+                        <button 
+                          className={`btn btn-xs fw-bold px-3 ${
+                            sub.status === 'Graded' ? 'btn-outline-info' : 'btn-primary'
+                          }`}
+                          onClick={() => navigate(`/teacher/sql-grades/${sub._id}`)}
+                        >
+                          {sub.status === 'Graded' ? 'Edit Grades' : 'Review & Grade'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card List equivalent */}
+            <div className="d-block d-md-none">
+              {sqlSubmissions.map(sub => (
+                <div key={sub._id} className="card glass-card p-3 mb-3 border border-secondary border-opacity-10 shadow-sm">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <div className="fw-bold text-light d-flex align-items-center gap-2 fs-6">
+                        <FaUserGraduate className="text-muted" size={13} />
+                        {sub.student_name}
+                      </div>
+                      <span className="text-muted small">Roll: {sub.student_roll}</span>
+                    </div>
+                    <span className={`badge ${sub.status === 'Graded' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                      {sub.status}
+                    </span>
+                  </div>
+                  
+                  <div className="bg-dark bg-opacity-25 rounded p-2 mb-3">
+                    <div className="fw-semibold text-info">{sub.assignment_title}</div>
+                    <div className="d-flex justify-content-between align-items-center mt-2">
+                       <span className="badge bg-secondary border border-secondary border-opacity-50">Attempt #{sub.attempt_number}</span>
+                       <div className="small text-muted d-flex align-items-center gap-1">
+                         <FaCalendarAlt size={11} /> {new Date(sub.submitted_at).toLocaleDateString()}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <span className="text-muted small fw-bold text-uppercase">Grade Data</span>
+                    <div className="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-2 py-1 rounded">
+                      <FaAward className={sub.status === 'Graded' ? 'text-success' : 'text-warning'} />
+                      <span className="fw-bold">
+                        {sub.final_marks} / {sub.total_possible_marks} Marks
+                      </span>
+                    </div>
+                  </div>
+
+                  <button 
+                    className={`btn btn-sm fw-bold w-100 d-flex align-items-center justify-content-center gap-2 ${sub.status === 'Graded' ? 'btn-outline-info' : 'btn-primary'}`}
+                    onClick={() => navigate(`/teacher/sql-grades/${sub._id}`)}
+                  >
+                    {sub.status === 'Graded' ? 'Edit Existing Grades' : 'Process Review & Grade'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )
       )}
     </div>

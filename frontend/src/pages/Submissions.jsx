@@ -39,8 +39,9 @@ const Submissions = () => {
         </a>
       </div>
 
-      <div className="card glass-card p-4">
-        <div className="table-responsive">
+      <div className="card glass-card p-3 p-md-4">
+        {/* Desktop View */}
+        <div className="d-none d-md-block table-responsive">
           <table className="table align-middle text-nowrap">
             <thead>
               <tr>
@@ -113,6 +114,63 @@ const Submissions = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="d-block d-md-none">
+          {submissions.length === 0 ? (
+            <div className="text-center py-4 text-muted">No student submissions found.</div>
+          ) : (
+            submissions.map((sub) => (
+              <div key={sub.id} className="card glass-card p-3 mb-3 shadow-sm border border-secondary border-opacity-10">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <h6 className="fw-bold fs-6 mb-1">{sub.student_name}</h6>
+                    <span className="text-muted small">Roll No: {sub.roll_number} &bull; Section: {sub.class_section}</span>
+                  </div>
+                  <span className={`status-badge px-2 py-1 ${
+                    sub.status === 'Graded' ? 'bg-success text-white' :
+                    sub.status === 'Submitted' ? 'bg-primary text-white' :
+                    sub.status === 'Draft' ? 'bg-warning text-dark' :
+                    sub.status === 'Absent' ? 'bg-danger text-white' :
+                    sub.status === 'Not Started' ? 'bg-secondary text-white' : 'bg-light text-dark'
+                  }`}>
+                    {sub.status === 'Draft' ? 'In Progress' : sub.status}
+                  </span>
+                </div>
+
+                <div className="bg-dark bg-opacity-25 rounded p-2 mb-3 mt-2">
+                  <div className="d-flex justify-content-between mb-1">
+                    <span className="text-muted small fw-semibold text-uppercase">Score</span>
+                    <span className="fw-bold text-info">
+                      {sub.status === 'Graded' ? `${sub.score} / ${sub.total_possible_marks} Marks` : '-'}
+                    </span>
+                  </div>
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted small fw-semibold text-uppercase">Time</span>
+                    <span className="small text-light text-end">
+                      {sub.submitted_at ? (() => {
+                        const d = new Date(sub.submitted_at);
+                        return isNaN(d.getTime()) ? sub.submitted_at : d.toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+                      })() : sub.status === 'Draft' ? 'In progress' : 'Not started yet'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  {(sub.status === 'Submitted' || sub.status === 'Graded') ? (
+                    <Link to={`/teacher/submissions/${sub.id}`} className="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-2 btn-primary">
+                      <FaClipboardList /> {sub.status === 'Graded' ? 'Edit Existing Grades' : 'Process Review & Grade'}
+                    </Link>
+                  ) : (
+                    <button className="btn btn-sm btn-secondary w-100" disabled>
+                      {sub.status === 'Draft' ? 'In Progress' : 'Not Started'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
