@@ -10,8 +10,9 @@ import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import alasql from 'alasql';
 import { validateSqlQuery } from '../utils/sqlValidator';
 window.alasql = alasql;
-// Configure alaSQL for case-insensitive table/column handling
+// Configure alaSQL for MS SQL functionality defaults
 alasql.options.casesensitive = false;
+alasql.options.tsql = true;
 
 const DEFAULT_SCHEMAS = [
   {

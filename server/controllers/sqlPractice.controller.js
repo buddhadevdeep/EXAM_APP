@@ -3,6 +3,7 @@ const alasql = require('alasql');
 const { validateSqlQuery } = require('../utils/sqlValidator');
 // Configure alaSQL for case-insensitive table/column handling
 alasql.options.casesensitive = false;
+alasql.options.tsql = true;
 
 const { 
   SqlDatabase, 

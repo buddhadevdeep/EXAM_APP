@@ -1,5 +1,31 @@
 const alasql = require('alasql');
 
+const bannedFunctions = {
+  'NOW': 'GETDATE',
+  'LENGTH': 'LEN',
+  'IFNULL': 'ISNULL',
+  'NVL': 'ISNULL',
+  'CURDATE': 'GETDATE',
+  'SYSDATE': 'GETDATE',
+  'SUBSTR': 'SUBSTRING'
+};
+
+function hasBannedFunction(expr) {
+  if (!expr || typeof expr !== 'object') return false;
+  if (expr.funcid) {
+    const fid = expr.funcid.toUpperCase();
+    if (bannedFunctions[fid]) return { func: fid, replacement: bannedFunctions[fid] };
+  }
+  for (const key of Object.keys(expr)) {
+    const val = expr[key];
+    if (typeof val === 'object' && val !== null) {
+      const res = hasBannedFunction(val);
+      if (res) return res;
+    }
+  }
+  return false;
+}
+
 function findUnaggregatedColumnIds(expr, list = new Set()) {
   if (!expr || typeof expr !== 'object') return list;
   if (expr.aggregatorid) return list;
@@ -41,6 +67,17 @@ function validateSqlQuery(sqlQuery) {
   if (!ast || !ast.statements || ast.statements.length === 0) return;
   
   for (const stmt of ast.statements) {
+    // MS SQL Validation: Block LIMIT
+    if (stmt.limit) {
+      throw new Error(`DBMS SQL standard error: LIMIT is not a valid MS SQL Server keyword. Use SELECT TOP N instead.`);
+    }
+
+    // MS SQL Validation: Block non-TSQL functions
+    const banned = hasBannedFunction(stmt);
+    if (banned) {
+      throw new Error(`DBMS SQL standard error: '${banned.func}()' is not a recognized built-in function name in MS SQL Server. Use ${banned.replacement}() instead.`);
+    }
+
     if (stmt.columns) {
       const hasAggregator = stmt.columns.some(hasAggregatorRecursive);
       const hasStar = stmt.columns.some(hasStarRecursive);

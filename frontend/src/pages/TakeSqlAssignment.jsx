@@ -3,8 +3,9 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import API_BASE from '../config/api';
 import alasql from 'alasql';
-// Configure alaSQL for case-insensitive table/column handling
+// Configure alaSQL for MS SQL functionality defaults
 alasql.options.casesensitive = false;
+alasql.options.tsql = true;
 
 import { validateSqlQuery } from '../utils/sqlValidator';
 
