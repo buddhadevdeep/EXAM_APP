@@ -95,7 +95,7 @@ const GradeSubmission = () => {
               </div>
 
               <div className="row">
-                <div className="col-md-7">
+                <div className="col-md-7 overflow-hidden">
                   <div className="mb-2 fw-semibold text-primary">Student's SQL Answer:</div>
                   <MonacoEditorWrapper 
                     value={(data.answers.find(a => Number(a.question_id) === Number(q.question_id || q.id))?.sql_query) || '-- No answer submitted --'} 
@@ -104,7 +104,7 @@ const GradeSubmission = () => {
                 </div>
                 <div className="col-md-5">
                   <div className="mb-2 fw-semibold text-success">Reference Solution Answer:</div>
-                  <pre className="p-3 bg-dark text-white rounded mb-3" style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
+                  <pre className="p-3 bg-dark text-white rounded mb-3" style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                     {q.sql_template || '-- No reference code provided --'}
                   </pre>
                   
