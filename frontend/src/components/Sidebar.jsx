@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaBook, 
   FaQuestion, FaFolderOpen, FaSignOutAlt, FaMoon, FaSun,
-  FaFileAlt, FaLock, FaCamera
+  FaFileAlt, FaLock, FaCamera, FaDatabase, FaClipboardList,
+  FaHistory, FaGraduationCap
 } from 'react-icons/fa';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -23,6 +24,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <ul className="nav nav-pills flex-column mb-auto">
         {user?.role === 'Admin' && (
           <>
+            <div className="sidebar-section-header px-3 mb-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>Administration</div>
             <li className="nav-item">
               <NavLink to="/admin/dashboard" className="nav-link" onClick={handleLinkClick}>
                 <FaTachometerAlt /> Dashboard
@@ -48,6 +50,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {user?.role === 'Teacher' && (
           <>
+            <div className="sidebar-section-header px-3 mb-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>Exam Coordinator</div>
             <li className="nav-item">
               <NavLink to="/teacher/dashboard" className="nav-link" onClick={handleLinkClick}>
                 <FaTachometerAlt /> Dashboard
@@ -68,11 +71,29 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <FaCamera /> Scan Student QR
               </NavLink>
             </li>
+            <hr className="my-2 border-secondary border-opacity-30" />
+            <div className="sidebar-section-header px-3 mb-1 mt-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>SQL Practice Module</div>
+            <li>
+              <NavLink to="/teacher/sql-databases" className="nav-link" onClick={handleLinkClick}>
+                <FaDatabase /> SQL Databases
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/teacher/sql-assignments" className="nav-link" onClick={handleLinkClick}>
+                <FaClipboardList /> SQL Assignments
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/teacher/sql-grades" className="nav-link" onClick={handleLinkClick}>
+                <FaGraduationCap /> Grades & Reviews
+              </NavLink>
+            </li>
           </>
         )}
-
+ 
         {user?.role === 'Student' && (
           <>
+            <div className="sidebar-section-header px-3 mb-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>Exams & History</div>
             <li className="nav-item">
               <NavLink to="/student/dashboard" className="nav-link" onClick={handleLinkClick}>
                 <FaTachometerAlt /> Exams
@@ -83,9 +104,23 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <FaFileAlt /> History & Marks
               </NavLink>
             </li>
+            <hr className="my-2 border-secondary border-opacity-30" />
+            <div className="sidebar-section-header px-3 mb-1 mt-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>SQL Practice Module</div>
+            <li>
+              <NavLink to="/student/sql-assignments" className="nav-link" onClick={handleLinkClick}>
+                <FaClipboardList /> My Assignments
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/student/sql-submissions" className="nav-link" onClick={handleLinkClick}>
+                <FaHistory /> Submissions
+              </NavLink>
+            </li>
           </>
         )}
 
+        <hr className="my-2 border-secondary border-opacity-30" />
+        <div className="sidebar-section-header px-3 mb-1 mt-1 text-uppercase text-muted fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>Account & Security</div>
         <li>
           <NavLink to="/profile" className="nav-link" onClick={handleLinkClick}>
             <FaLock /> Profile / Security

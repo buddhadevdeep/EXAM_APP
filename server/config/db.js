@@ -56,7 +56,8 @@ async function initializeDatabase() {
     Category,
     QuestionBank,
     Question,
-    Setting
+    Setting,
+    PracticeSchema
   } = require('../models/mongoose.model');
 
   try {
@@ -215,9 +216,10 @@ async function initializeDatabase() {
     await syncCounter('question_banks', QuestionBank);
     await syncCounter('questions', Question);
     await syncCounter('settings', Setting);
+    await syncCounter('practice_schemas', PracticeSchema);
     
     // Sync other collections
-    const { Exam, ExamQuestion, Submission, SubmissionAnswer, Mark, Feedback, Notification, ActivityLog } = require('../models/mongoose.model');
+    const { Exam, ExamQuestion, Submission, SubmissionAnswer, Mark, Feedback, Notification, ActivityLog, SqlDatabase, SqlAssignment, SqlSubmission } = require('../models/mongoose.model');
     try {
       await Submission.collection.dropIndex('student_id_1_exam_id_1');
       console.log('Successfully dropped old unique submissions index.');
@@ -232,6 +234,9 @@ async function initializeDatabase() {
     await syncCounter('feedbacks', Feedback);
     await syncCounter('notifications', Notification);
     await syncCounter('activity_logs', ActivityLog);
+    await syncCounter('sql_databases', SqlDatabase);
+    await syncCounter('sql_assignments', SqlAssignment);
+    await syncCounter('sql_submissions', SqlSubmission);
 
     console.log('Sequence counters synced successfully.');
   } catch (err) {

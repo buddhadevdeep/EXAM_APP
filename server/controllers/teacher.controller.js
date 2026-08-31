@@ -4,7 +4,7 @@ const UtilityModel = require('../models/utility.model');
 
 exports.createExam = async (req, res, next) => {
   try {
-    const { subjectId, title, description, totalMarks, durationMinutes, questionIds, accessCode, startTime, endTime, allowedRollNumbers, databaseSchema } = req.body;
+    const { subjectId, title, description, totalMarks, durationMinutes, questionIds, accessCode, startTime, endTime, allowedRollNumbers, databaseSchema, examType } = req.body;
     
     // Get teacher context
     const teacher = await Teacher.findByUserId(req.user.id);
@@ -23,7 +23,8 @@ exports.createExam = async (req, res, next) => {
       startTime: startTime || null,
       endTime: endTime || null,
       allowedRollNumbers: allowedRollNumbers || [],
-      databaseSchema: databaseSchema || ''
+      databaseSchema: databaseSchema || '',
+      examType: examType || 'Exam'
     });
 
     if (questionIds && questionIds.length > 0) {
@@ -41,7 +42,7 @@ exports.createExam = async (req, res, next) => {
 exports.updateExam = async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { subjectId, title, description, totalMarks, durationMinutes, questionIds, accessCode, startTime, endTime, allowedRollNumbers, databaseSchema } = req.body;
+    const { subjectId, title, description, totalMarks, durationMinutes, questionIds, accessCode, startTime, endTime, allowedRollNumbers, databaseSchema, examType } = req.body;
 
     const teacher = await Teacher.findByUserId(req.user.id);
     if (!teacher) {
@@ -59,7 +60,8 @@ exports.updateExam = async (req, res, next) => {
       start_time: startTime || null,
       end_time: endTime || null,
       allowed_roll_numbers: allowedRollNumbers,
-      database_schema: databaseSchema
+      database_schema: databaseSchema,
+      exam_type: examType
     });
 
     // 2. Refresh linked exam questions

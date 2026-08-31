@@ -2,7 +2,7 @@ import API_BASE from '../config/api.js';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaSave, FaCheckCircle } from 'react-icons/fa';
+import { FaSave, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
 import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 
 const GradeSubmission = () => {
@@ -62,7 +62,7 @@ const GradeSubmission = () => {
         })),
         overallFeedback
       });
-      navigate(`/teacher/dashboard`);
+      navigate(-1);
     } catch (err) {
       alert('Error saving grading details');
     }
@@ -74,6 +74,10 @@ const GradeSubmission = () => {
 
   return (
     <div className="container mt-4 animated-fade">
+      <button className="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 mb-3" onClick={() => navigate(-1)} type="button">
+        <FaArrowLeft /> Back
+      </button>
+
       <h3 className="fw-bold mb-2">Grading Dashboard</h3>
       <h5 className="text-muted mb-4">Student: {submission.student_name} ({submission.roll_number}) &bull; Exam: {submission.exam_title}</h5>
 

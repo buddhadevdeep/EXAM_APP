@@ -122,6 +122,7 @@ const ExamSchema = new mongoose.Schema({
   end_time: { type: Date, default: null },
   allowed_roll_numbers: { type: [String], default: [] },
   database_schema: { type: String, default: '' },
+  exam_type: { type: String, default: 'Exam' },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
@@ -220,6 +221,87 @@ const SettingSchema = new mongoose.Schema({
 });
 const Setting = mongoose.model('Setting', SettingSchema);
 
+// PracticeSchema Schema
+const PracticeSchemaSchema = new mongoose.Schema({
+  _id: Number,
+  teacher_id: { type: Number, required: true },
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  schema_sql: { type: String, required: true },
+  assigned_class: { type: String, default: 'All' },
+  created_at: { type: Date, default: Date.now }
+});
+const PracticeSchema = mongoose.model('PracticeSchema', PracticeSchemaSchema);
+
+// SqlDatabase Schema
+const SqlDatabaseSchema = new mongoose.Schema({
+  _id: Number,
+  teacher_id: { type: Number, required: true },
+  name: { type: String, required: true },
+  description: { type: String, default: '' },
+  tables: [{
+    name: { type: String, required: true },
+    columns: [{
+      name: { type: String, required: true },
+      type: { type: String, required: true },
+      is_primary: { type: Boolean, default: false },
+      is_foreign: { type: Boolean, default: false },
+      foreign_table: { type: String, default: null },
+      foreign_column: { type: String, default: null }
+    }],
+    rows: [mongoose.Schema.Types.Mixed]
+  }],
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+const SqlDatabase = mongoose.model('SqlDatabase', SqlDatabaseSchema);
+
+// SqlAssignment Schema
+const SqlAssignmentSchema = new mongoose.Schema({
+  _id: Number,
+  teacher_id: { type: Number, required: true },
+  sql_database_id: { type: Number, required: true },
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  questions: [{
+    question_text: { type: String, required: true },
+    points: { type: Number, default: 5 },
+    difficulty: { type: String, default: 'Easy' },
+    hints: { type: String, default: '' },
+    expected_sql: { type: String, required: true }
+  }],
+  assigned_class: { type: String, default: 'All' },
+  allowed_roll_numbers: { type: [String], default: [] },
+  start_time: { type: Date, default: null },
+  end_time: { type: Date, default: null },
+  max_attempts: { type: Number, default: 1 },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+const SqlAssignment = mongoose.model('SqlAssignment', SqlAssignmentSchema);
+
+// SqlSubmission Schema
+const SqlSubmissionSchema = new mongoose.Schema({
+  _id: Number,
+  sql_assignment_id: { type: Number, required: true },
+  student_id: { type: Number, required: true },
+  attempt_number: { type: Number, default: 1 },
+  started_at: { type: Date, default: Date.now },
+  submitted_at: { type: Date, default: null },
+  answers: [{
+    question_idx: Number,
+    submitted_query: { type: String, default: '' },
+    is_correct: { type: Boolean, default: false },
+    auto_marks: { type: Number, default: 0 },
+    manual_marks: { type: Number, default: null },
+    feedback: { type: String, default: '' }
+  }],
+  status: { type: String, default: 'Draft' }, // 'Draft', 'Submitted', 'Graded'
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+const SqlSubmission = mongoose.model('SqlSubmission', SqlSubmissionSchema);
+
 module.exports = {
   Counter,
   getNextSequenceValue,
@@ -239,5 +321,9 @@ module.exports = {
   Feedback,
   Notification,
   ActivityLog,
-  Setting
+  Setting,
+  PracticeSchema,
+  SqlDatabase,
+  SqlAssignment,
+  SqlSubmission
 };

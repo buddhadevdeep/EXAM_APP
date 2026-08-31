@@ -68,8 +68,8 @@ const AdminDashboard = () => {
         <h3 className="fw-bold mb-0">Platform Admin Analytics</h3>
         <div className="d-flex flex-wrap gap-2">
           <button className="btn btn-outline-primary" onClick={fetchStats}><FaSyncAlt /> Sync</button>
-          <a href={`${API_BASE}/api/admin/reports/pdf`} className="btn btn-primary"><FaDownload /> PDF</a>
-          <a href={`${API_BASE}/api/admin/reports/excel`} className="btn btn-success"><FaDownload /> Excel</a>
+          <a href={`${API_BASE}/api/admin/reports/pdf?token=${localStorage.getItem('token')}`} className="btn btn-primary"><FaDownload /> PDF</a>
+          <a href={`${API_BASE}/api/admin/reports/excel?token=${localStorage.getItem('token')}`} className="btn btn-success"><FaDownload /> Excel</a>
         </div>
       </div>
 

@@ -87,40 +87,53 @@ exports.getExamDetails = async (req, res, next) => {
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found.' });
     }
-    if (!exam.is_published) {
-      return res.status(403).json({ message: 'This exam is not active or has been unpublished.' });
-    }
 
     if (!student) {
       return res.status(404).json({ message: 'Student profile not found.' });
     }
 
-    // Check if exam restricts access to specific roll numbers
-    if (exam.allowed_roll_numbers && exam.allowed_roll_numbers.length > 0) {
-      if (!exam.allowed_roll_numbers.includes(student.roll_number)) {
-        return res.status(403).json({ message: 'You are not authorized to take this exam. Access is restricted to specific roll numbers.' });
+    // If a submissionId is provided, this is a review/read-only request.
+    // Skip active-exam checks (published, timeline, passcode) so students can
+    // review their past submissions even after the exam is closed/unpublished.
+    const submissionId = req.query.submissionId;
+    const isReviewMode = !!submissionId;
+
+    if (isReviewMode) {
+      if (exam.exam_type !== 'Assignment' && !exam.is_published) {
+        return res.status(403).json({ message: 'This exam is not active or has been unpublished.' });
       }
-    }
+    } else {
+      if (!exam.is_published) {
+        return res.status(403).json({ message: 'This exam is not active or has been unpublished.' });
+      }
 
-    // Verify timeline bounds
-    const now = new Date();
-    if (exam.start_time && new Date(exam.start_time) > now) {
-      return res.status(403).json({ message: 'This exam is not active yet.' });
-    }
-    if (exam.end_time && new Date(exam.end_time) < now) {
-      return res.status(403).json({ message: 'The access timeline for this exam has expired.' });
-    }
+      // Check if exam restricts access to specific roll numbers
+      if (exam.allowed_roll_numbers && exam.allowed_roll_numbers.length > 0) {
+        if (!exam.allowed_roll_numbers.includes(student.roll_number)) {
+          return res.status(403).json({ message: 'You are not authorized to take this exam. Access is restricted to specific roll numbers.' });
+        }
+      }
 
-    // Verify passcode if configured
-    const clientCode = req.query.code;
-    if (exam.access_code && exam.access_code !== clientCode) {
-      return res.status(403).json({ message: 'Invalid exam entry passcode. Access Denied.' });
+      // Verify timeline bounds
+      const now = new Date();
+      if (exam.start_time && new Date(exam.start_time) > now) {
+        return res.status(403).json({ message: 'This exam is not active yet.' });
+      }
+      if (exam.end_time && new Date(exam.end_time) < now) {
+        return res.status(403).json({ message: 'The access timeline for this exam has expired.' });
+      }
+
+      // Verify passcode if configured (bypass in practice mode or if it is a practice assignment)
+      const clientCode = req.query.code;
+      const isPractice = req.query.practice === 'true';
+      if (exam.access_code && exam.access_code !== clientCode && !isPractice && exam.exam_type !== 'Assignment') {
+        return res.status(403).json({ message: 'Invalid exam entry passcode. Access Denied.' });
+      }
     }
 
     // Retrieve requested attempt or get/create a new draft
     const { Submission: MongoSubmission } = require('../models/mongoose.model');
     let submission;
-    const submissionId = req.query.submissionId;
     if (submissionId) {
       submission = await MongoSubmission.findById(submissionId).lean();
       if (submission) {

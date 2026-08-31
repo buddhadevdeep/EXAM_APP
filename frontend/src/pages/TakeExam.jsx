@@ -2,10 +2,12 @@ import API_BASE from '../config/api.js';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaSave, FaCheckDouble, FaChevronLeft, FaChevronRight, FaSun, FaMoon } from 'react-icons/fa';
+import { FaSave, FaCheckDouble, FaChevronLeft, FaChevronRight, FaSun, FaMoon, FaDatabase } from 'react-icons/fa';
 import MonacoEditorWrapper from '../components/MonacoEditorWrapper';
 import SmartHints from '../components/SmartHints';
 import { useAuth } from '../context/AuthContext';
+import alasql from 'alasql';
+window.alasql = alasql;
 
 const TakeExam = () => {
   const { examId } = useParams();
@@ -18,6 +20,16 @@ const TakeExam = () => {
   const [warningCount, setWarningCount] = useState(0);
   const navigate = useNavigate();
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isPracticeMode, setIsPracticeMode] = useState(
+    new URLSearchParams(window.location.search).get('practice') === 'true'
+  );
+
+  // Practice Mode state variables for dynamic compiler
+  const [alasqlReady, setAlasqlReady] = useState(false);
+  const [executingPracticeQuery, setExecutingPracticeQuery] = useState(false);
+  const [practiceQueryResult, setPracticeQueryResult] = useState(null);
+  const [practiceQueryError, setPracticeQueryError] = useState(null);
+  const [practiceMessage, setPracticeMessage] = useState('');
 
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isWaitingVerification, setIsWaitingVerification] = useState(false);
@@ -46,7 +58,7 @@ const TakeExam = () => {
   };
 
   const [isFullscreenActive, setIsFullscreenActive] = useState(
-    !!(document.fullscreenElement ||
+    isPracticeMode ? true : !!(document.fullscreenElement ||
        document.webkitFullscreenElement ||
        document.mozFullScreenElement ||
        document.msFullscreenElement)
@@ -95,7 +107,7 @@ const TakeExam = () => {
 
   // Auto-restore fullscreen on any user click or keypress
   useEffect(() => {
-    if (isReadOnly) return;
+    if (isReadOnly || isPracticeMode) return;
     if (!isFullscreenActive) {
       const handleRestore = () => {
         startExamFullscreen();
@@ -107,7 +119,7 @@ const TakeExam = () => {
         window.removeEventListener('click', handleRestore);
       };
     }
-  }, [isFullscreenActive]);
+  }, [isFullscreenActive, isReadOnly, isPracticeMode]);
 
   useEffect(() => {
     let interval;
@@ -194,7 +206,7 @@ const TakeExam = () => {
 
   // Anti-cheating listeners (screenshot blocking + tab leave monitor)
   useEffect(() => {
-    if (isReadOnly) return;
+    if (isReadOnly || isPracticeMode) return;
     // 1. Prevent copy/paste/context menu on the main page wrapper
     const handleCopyCut = (e) => {
       e.preventDefault();
@@ -372,9 +384,10 @@ const TakeExam = () => {
       window.removeEventListener('focus', handleWindowFocus);
       document.body.classList.remove('blurred-screen');
     };
-  }, [data]);
+  }, [data, isReadOnly, isPracticeMode]);
 
   const handleSubmitSilent = async () => {
+    if (isPracticeMode) return;
     if (!data) return;
     try {
       isSubmittingRef.current = true;
@@ -415,11 +428,20 @@ const TakeExam = () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code') || '';
-        const res = await axios.get(`${API_BASE}/api/student/exams/${examId}?code=${code}`);
+        const reviewSubmissionId = urlParams.get('submissionId') || '';
+        let apiUrl = `${API_BASE}/api/student/exams/${examId}?code=${code}${isPracticeMode ? '&practice=true' : ''}`;
+        if (reviewSubmissionId) {
+          apiUrl += `&submissionId=${reviewSubmissionId}`;
+        }
+        const res = await axios.get(apiUrl);
         
         const status = res.data.submission.status;
         if (status === 'Submitted' || status === 'Graded') {
           setIsReadOnly(true);
+        }
+
+        if (res.data.exam?.exam_type === 'Assignment') {
+          setIsPracticeMode(true);
         }
 
         setData(res.data);
@@ -478,11 +500,76 @@ const TakeExam = () => {
     });
   };
 
+  // Initialize in-memory database for SQL Practice Mode using loaded exam schema
+  useEffect(() => {
+    if (isPracticeMode && data?.exam?.database_schema) {
+      try {
+        const dbId = 'practice_exam_db_' + Math.random().toString(36).substring(2, 9);
+        window.alasql(`CREATE DATABASE ${dbId}; USE ${dbId};`);
+        
+        const statements = data.exam.database_schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
+        for (const stmt of statements) {
+          window.alasql(stmt);
+        }
+        
+        setAlasqlReady(true);
+        setPracticeMessage('Sql Client Database ready. Write and run queries below to test.');
+      } catch (err) {
+        console.error(err);
+        setPracticeQueryError('Db Init Error: ' + err.message);
+      }
+    }
+  }, [isPracticeMode, data]);
+
+  const executePracticeQuery = () => {
+    if (!window.alasql) return;
+    setExecutingPracticeQuery(true);
+    setPracticeQueryResult(null);
+    setPracticeQueryError(null);
+    
+    setTimeout(() => {
+      try {
+        const activeQId = currentQuestion?.id;
+        const queryText = answers[activeQId] || '';
+        
+        if (!queryText.trim()) {
+          setPracticeQueryError('Query editor is empty.');
+          setExecutingPracticeQuery(false);
+          return;
+        }
+
+        const splitQueries = queryText
+          .split(';')
+          .map(q => q.trim())
+          .filter(q => q.length > 0);
+
+        let res = null;
+        for (const q of splitQueries) {
+          res = window.alasql(q);
+        }
+
+        if (Array.isArray(res)) {
+          setPracticeQueryResult(res);
+          setPracticeMessage(`Success: Query returned ${res.length} rows.`);
+        } else {
+          setPracticeQueryResult([]);
+          setPracticeMessage(`Success: Statement executed. Result: ${JSON.stringify(res)}`);
+        }
+      } catch (err) {
+        setPracticeQueryError(err.message);
+      } finally {
+        setExecutingPracticeQuery(false);
+      }
+    }, 150);
+  };
+
   const handleQueryChange = (val) => {
     if (isReadOnly) return;
     const qId = data.questions[currentIdx].id;
     setAnswers(prev => ({ ...prev, [qId]: val }));
     answersRef.current[qId] = val;
+
+    if (isPracticeMode) return;
 
     if (saveTimeoutRef.current[qId]) {
       clearTimeout(saveTimeoutRef.current[qId]);
@@ -504,6 +591,12 @@ const TakeExam = () => {
   };
 
   const confirmAndSubmit = async () => {
+    if (isPracticeMode) {
+      setShowSubmitConfirm(false);
+      alert('Assignment completed! Returning to Dashboard.');
+      navigate('/student/dashboard');
+      return;
+    }
     try {
       setShowSubmitConfirm(false);
       isSubmittingRef.current = true;
@@ -540,6 +633,12 @@ const TakeExam = () => {
 
 
   const handleSubmit = () => {
+    if (isPracticeMode) {
+      if (window.confirm('Assignment session complete! Would you like to exit to the Dashboard?')) {
+        navigate('/student/dashboard');
+      }
+      return;
+    }
     setShowSubmitConfirm(true);
   };
 
@@ -569,7 +668,7 @@ const TakeExam = () => {
 
   return (
     <div ref={examContainerRef} className={`fullscreen-exam-container ${isFullscreenActive ? 'is-fullscreen' : ''}`} style={{ position: 'relative', minHeight: '100vh' }}>
-      {!isFullscreenActive && !isReadOnly ? (
+      {!isFullscreenActive && !isReadOnly && !isPracticeMode ? (
         <div 
           className="secure-overlay" 
           style={{ zIndex: 9999999, cursor: 'pointer', background: 'rgba(9, 13, 22, 0.98)', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
@@ -763,7 +862,69 @@ const TakeExam = () => {
                       readOnly={isReadOnly}
                     />
 
-                    <div className="d-flex justify-content-between mt-3">
+                    {isPracticeMode && (
+                      <div className="card glass-card p-3 border border-info border-opacity-30 rounded-3 mt-3 shadow-sm">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="fw-bold mb-0 text-info d-flex align-items-center gap-2">
+                            <span className="spinner-grow spinner-grow-sm text-info" role="status" style={{ width: '10px', height: '10px' }} />
+                            Local SQL Compiler Sandbox
+                          </h6>
+                          <button 
+                            type="button"
+                            className="btn btn-sm btn-info fw-bold d-flex align-items-center gap-1"
+                            onClick={executePracticeQuery}
+                            disabled={executingPracticeQuery || !alasqlReady}
+                          >
+                            <FaPlay size={10} /> {executingPracticeQuery ? 'Running...' : 'Run Query'}
+                          </button>
+                        </div>
+
+                        <div className="practice-results-table overflow-auto" style={{ maxHeight: '200px' }}>
+                          {practiceQueryError && (
+                            <div className="alert alert-danger font-monospace py-2 small mb-0">
+                              <strong>Error:</strong> {practiceQueryError}
+                            </div>
+                          )}
+
+                          {!practiceQueryError && practiceQueryResult && practiceQueryResult.length > 0 && (
+                            <div className="table-responsive rounded border border-secondary border-opacity-10">
+                              <table className="table table-hover table-sm table-dark align-middle mb-0 font-monospace" style={{ fontSize: '0.8rem' }}>
+                                <thead className="table-secondary bg-opacity-25 header-dark">
+                                  <tr>
+                                    {Object.keys(practiceQueryResult[0]).map(h => (
+                                      <th key={h} className="text-info">{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {practiceQueryResult.map((row, idx) => (
+                                    <tr key={idx}>
+                                      {Object.values(row).map((val, cellIdx) => (
+                                        <td key={cellIdx}>
+                                          {val === null || val === undefined ? (
+                                            <span className="text-muted small">NULL</span>
+                                          ) : (
+                                            String(val)
+                                          )}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {!practiceQueryError && (!practiceQueryResult || practiceQueryResult.length === 0) && (
+                            <div className="text-muted small text-center py-2 font-monospace">
+                              {practiceMessage || 'Write a SQL query above and click "Run Query" to see outputs.'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="d-flex justify-content-between mt-3 flex-wrap gap-2">
                       <button 
                         className="btn btn-outline-secondary d-flex align-items-center gap-1"
                         disabled={currentIdx === 0}

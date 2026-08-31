@@ -13,6 +13,8 @@ const adminRoutes = require('./routes/admin.route');
 const teacherRoutes = require('./routes/teacher.route');
 const studentRoutes = require('./routes/student.route');
 const sharedRoutes = require('./routes/shared.route');
+const practiceRoutes = require('./routes/practice.route');
+const sqlPracticeRoutes = require('./routes/sqlPractice.route');
 
 const app = express();
 
@@ -84,6 +86,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/shared', sharedRoutes);
+app.use('/api/practice', practiceRoutes);
+app.use('/api/sql-practice', sqlPracticeRoutes);
 
 // Serve static files from the React frontend build
 const distPath = path.join(__dirname, '../frontend/dist');

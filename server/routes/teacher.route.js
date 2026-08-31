@@ -37,14 +37,17 @@ router.post('/submissions/:submissionId/grade', teacherController.gradeSubmissio
 router.get('/exams/:examId/export', async (req, res, next) => {
   try {
     const { examId } = req.params;
-    const { Submission: MongoSubmission, Student: MongoStudent, Mark: MongoMark, Feedback: MongoFeedback } = require('../models/mongoose.model');
+    const { Submission, Exam } = require('../models/exam.model');
+    const { Mark: MongoMark, Feedback: MongoFeedback } = require('../models/mongoose.model');
 
-    const submissions = await MongoSubmission.find({ exam_id: examId }).lean();
-    const studentIds = submissions.map(s => s.student_id);
-    const students = await MongoStudent.find({ _id: { $in: studentIds } }).lean();
-    const studentMap = new Map(students.map(s => [s._id, s]));
+    const exam = await Exam.getById(examId);
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found.' });
+    }
 
-    const subIds = submissions.map(s => s._id);
+    const submissionsList = await Submission.getSubmissionsForExam(examId);
+
+    const subIds = submissionsList.filter(s => typeof s.id === 'number').map(s => s.id);
     const marks = await MongoMark.find({ submission_id: { $in: subIds } }).lean();
     const feedbacks = await MongoFeedback.find({ submission_id: { $in: subIds } }).lean();
 
@@ -56,20 +59,30 @@ router.get('/exams/:examId/export', async (req, res, next) => {
 
     const feedbackMap = new Map(feedbacks.map(f => [f.submission_id, f.comments]));
 
-    const data = submissions.map(sub => {
-      const s = studentMap.get(sub.student_id) || {};
-      const totalScore = marksSumMap.get(sub._id) || 0;
-      const comment = feedbackMap.get(sub._id) || 'N/A';
+    const data = submissionsList.map(sub => {
+      const statusText = sub.status === 'Draft' ? 'In Progress' : sub.status;
+      const isGraded = sub.status === 'Graded';
+      
+      const totalScore = isGraded ? (marksSumMap.get(sub.id) || 0) : 'N/A';
+      const comment = isGraded ? (feedbackMap.get(sub.id) || 'N/A') : 'N/A';
+      
+      const submittedDateStr = sub.submitted_at ? (() => {
+        const d = new Date(sub.submitted_at);
+        return isNaN(d.getTime()) ? sub.submitted_at : d.toLocaleString('en-US');
+      })() : (sub.status === 'Draft' ? 'In Progress' : 'Not started yet');
+
       return [
-        s.full_name || '',
-        s.roll_number || '',
-        sub.status,
+        sub.student_name || 'Unknown Student',
+        sub.roll_number || '',
+        sub.class_section || '',
+        statusText,
+        submittedDateStr,
         totalScore,
         comment
       ];
     });
 
-    const headers = ['Full Name', 'Roll Number', 'Status', 'Score', 'Feedback'];
+    const headers = ['Student Name', 'Roll Number', 'Section', 'Submission Status', 'Submitted Date', 'Score', 'Feedback'];
     await generateExcelReport(res, 'Exam Marks', headers, data);
   } catch (error) {
     next(error);

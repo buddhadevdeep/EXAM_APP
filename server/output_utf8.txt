@@ -1,0 +1,73 @@
+﻿Connected to MongoDB Atlas successfully.
+Initializing database data if empty...
+Submission: {
+  _id: 1,
+  sql_assignment_id: 1,
+  student_id: 12,
+  attempt_number: 1,
+  submitted_at: 2026-08-29T11:22:03.563Z,
+  answers: [
+    {
+      question_idx: 0,
+      submitted_query: 'select * from employees',
+      is_correct: false,
+      auto_marks: 0,
+      manual_marks: 2,
+      feedback: '',
+      _id: new ObjectId('6a92c0db727353e3199a5ef6')
+    }
+  ],
+  status: 'Graded',
+  started_at: 2026-08-29T11:08:02.415Z,
+  created_at: 2026-08-29T11:08:02.415Z,
+  updated_at: 2026-08-29T11:22:50.524Z,
+  __v: 1
+}
+Assignment: {
+  _id: 1,
+  teacher_id: 3,
+  sql_database_id: 1,
+  title: 'test assingment',
+  description: 'cheak out',
+  questions: [
+    {
+      question_text: 'Find all employees who earn more than 60000.',
+      points: 5,
+      difficulty: 'Easy',
+      hints: '',
+      expected_sql: 'SELECT * FROM employees WHERE salary > 60000;',
+      _id: new ObjectId('6a92bd77c98c9a47304a5951')
+    }
+  ],
+  assigned_class: 'All',
+  start_time: 2026-08-29T11:07:00.000Z,
+  end_time: 2026-08-30T05:24:00.000Z,
+  max_attempts: 1,
+  created_at: 2026-08-29T10:55:24.388Z,
+  updated_at: 2026-08-29T11:07:35.278Z,
+  __v: 1,
+  allowed_roll_numbers: [ '24010101022' ]
+}
+Student: {
+  _id: 12,
+  user_id: 16,
+  full_name: 'param kotadiya',
+  roll_number: '24010101022',
+  class_section: 'CSE-B',
+  created_at: 2026-08-25T04:24:51.892Z,
+  __v: 0
+}
+User: {
+  _id: 16,
+  email: 'param@gmail.com',
+  password_hash: '$2b$10$yY7J0c7wGWp/eraK7F944uwgcEAHq66s2wSWc0C68Jf7wUP1uWeUK',
+  role_id: 3,
+  is_active: 1,
+  email_verified: 1,
+  verification_token: null,
+  current_session_id: 'vxcoazwtpfgmthb71wh',
+  last_active_at: 2026-08-31T14:09:14.564Z,
+  created_at: 2026-08-25T04:24:51.513Z,
+  updated_at: 2026-08-25T04:24:51.514Z,
+  __v: 0
+}

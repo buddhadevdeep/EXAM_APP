@@ -1,0 +1,29 @@
+﻿Columns: [
+  { header: 'Full Name', key: 'full_name' },
+  { header: 'Roll Number', key: 'roll_number' },
+  { header: 'Status', key: 'status' },
+  { header: 'Score', key: 'score' },
+  { header: 'Feedback', key: 'feedback' }
+]
+RowObj 0: {
+  full_name: 'deep',
+  roll_number: '421',
+  status: 'Draft',
+  score: 2,
+  feedback: 'Rr'
+}
+RowObj 1: {
+  full_name: 'deep',
+  roll_number: '421',
+  status: 'Draft',
+  score: 0,
+  feedback: 'Jsjs'
+}
+RowObj 2: {
+  full_name: 'param kotadiya',
+  roll_number: '24010101022',
+  status: 'Submitted',
+  score: 2,
+  feedback: 'Revision'
+}
+Excel file test_report.xlsx generated successfully!

@@ -52,7 +52,7 @@ class Question {
 }
 
 class Exam {
-  static async create({ teacherId, subjectId, title, description, totalMarks, durationMinutes, accessCode = null, startTime = null, endTime = null, allowedRollNumbers = [], databaseSchema = '' }) {
+  static async create({ teacherId, subjectId, title, description, totalMarks, durationMinutes, accessCode = null, startTime = null, endTime = null, allowedRollNumbers = [], databaseSchema = '', examType = 'Exam' }) {
     const nextId = await getNextSequenceValue('exams');
     const exam = await MongoExam.create({
       _id: nextId,
@@ -66,7 +66,8 @@ class Exam {
       start_time: startTime ? new Date(startTime) : null,
       end_time: endTime ? new Date(endTime) : null,
       allowed_roll_numbers: allowedRollNumbers,
-      database_schema: databaseSchema
+      database_schema: databaseSchema,
+      exam_type: examType
     });
     return exam._id;
   }
@@ -132,7 +133,7 @@ class Exam {
 
   static async update(id, updates) {
     const updateObj = {};
-    const fields = ['subject_id', 'title', 'description', 'total_marks', 'duration_minutes', 'is_published', 'is_closed', 'access_code', 'start_time', 'end_time', 'allowed_roll_numbers', 'database_schema'];
+    const fields = ['subject_id', 'title', 'description', 'total_marks', 'duration_minutes', 'is_published', 'is_closed', 'access_code', 'start_time', 'end_time', 'allowed_roll_numbers', 'database_schema', 'exam_type'];
     fields.forEach(f => {
       if (updates[f] !== undefined) {
         if ((f === 'start_time' || f === 'end_time')) {
@@ -246,6 +247,14 @@ class Submission {
 
     const submissions = await MongoSubmission.find({ exam_id: numericExamId }).lean();
     
+    const subIds = submissions.map(s => s._id);
+    const marks = await MongoMark.find({ submission_id: { $in: subIds } }).lean();
+    const marksSumMap = new Map();
+    marks.forEach(m => {
+      const current = marksSumMap.get(m.submission_id) || 0;
+      marksSumMap.set(m.submission_id, current + m.marks_obtained);
+    });
+
     // Fetch active students by mapping active user ids
     const students = await MongoStudent.find().lean();
     const userIds = students.map(s => s.user_id);
@@ -287,7 +296,9 @@ class Submission {
         status,
         student_name: s.full_name || 'Unknown Student',
         roll_number: s.roll_number || '',
-        class_section: s.class_section || ''
+        class_section: s.class_section || '',
+        score: marksSumMap.get(sub._id) || 0,
+        total_possible_marks: exam.total_marks || 100
       });
     }
 
@@ -308,7 +319,9 @@ class Submission {
           total_marks: 0,
           student_name: s.full_name || '',
           roll_number: s.roll_number || '',
-          class_section: s.class_section || ''
+          class_section: s.class_section || '',
+          score: 0,
+          total_possible_marks: exam.total_marks || 100
         });
       }
     }

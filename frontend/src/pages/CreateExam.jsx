@@ -23,7 +23,7 @@ const CreateExam = () => {
   const [databaseSchema, setDatabaseSchema] = useState('');
   const [students, setStudents] = useState([]);
   const [step, setStep] = useState(1);
-  
+
   // Custom Question Form State
   const [customTitle, setCustomTitle] = useState('');
   const [customDesc, setCustomDesc] = useState('');
@@ -195,7 +195,8 @@ const CreateExam = () => {
         startTime: toUTCString(startTime),
         endTime: toUTCString(endTime),
         allowedRollNumbers: allowedRollNumbers,
-        databaseSchema: databaseSchema
+        databaseSchema: databaseSchema,
+        examType: 'Exam'
       });
       navigate('/teacher/dashboard');
     } catch (err) {
@@ -259,8 +260,8 @@ const CreateExam = () => {
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="col-md-8">
-                <label className="form-label small fw-bold">Exam Title</label>
+              <div className="col-md-7">
+                <label className="form-label small fw-bold">Exercise Title / Name</label>
                 <input 
                   type="text" className="form-control py-2" required value={title}
                   onChange={e => setTitle(e.target.value)} 
@@ -282,9 +283,13 @@ const CreateExam = () => {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label small fw-bold">Exam PIN / Passcode (Mandatory)</label>
+                <label className="form-label small fw-bold">
+                  Exam PIN / Passcode (Mandatory)
+                </label>
                 <input 
-                  type="text" className="form-control py-2" placeholder="e.g. SQLTEST" required
+                  type="text" className="form-control py-2" 
+                  placeholder="e.g. SQLTEST" 
+                  required
                   value={accessCode} onChange={e => setAccessCode(e.target.value)}
                 />
               </div>

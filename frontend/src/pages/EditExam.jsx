@@ -24,6 +24,7 @@ const EditExam = () => {
   const [rollNumberInput, setRollNumberInput] = useState('');
   const [databaseSchema, setDatabaseSchema] = useState('');
   const [students, setStudents] = useState([]);
+  const [examType, setExamType] = useState('Exam'); // 'Exam' | 'Assignment'
   const [step, setStep] = useState(1);
   
   // Custom Question Form State
@@ -142,6 +143,7 @@ const EditExam = () => {
           setDuration(ex.duration_minutes || 60);
           setTotalMarks(ex.total_marks || 100);
           setAccessCode(ex.access_code || '');
+          setExamType(ex.exam_type || 'Exam');
           
           if (ex.start_time) {
             const d = new Date(ex.start_time);
@@ -201,11 +203,12 @@ const EditExam = () => {
         totalMarks: parseInt(totalMarks),
         durationMinutes: parseInt(duration),
         questionIds: selectedQuestions,
-        accessCode,
+        accessCode: accessCode || null,
         startTime: toUTCString(startTime),
         endTime: toUTCString(endTime),
         allowedRollNumbers: allowedRollNumbers,
-        databaseSchema: databaseSchema
+        databaseSchema: databaseSchema,
+        examType: 'Exam'
       });
       alert('Exam updated successfully!');
       navigate('/teacher/dashboard');
@@ -271,8 +274,8 @@ const EditExam = () => {
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="col-md-8">
-                <label className="form-label small fw-bold">Exam Title</label>
+              <div className="col-md-7">
+                <label className="form-label small fw-bold">Exercise Title / Name</label>
                 <input 
                   type="text" className="form-control py-2" required value={title}
                   onChange={e => setTitle(e.target.value)} 
@@ -294,9 +297,13 @@ const EditExam = () => {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label small fw-bold">Exam PIN / Passcode (Mandatory)</label>
+                <label className="form-label small fw-bold">
+                  Exam PIN / Passcode (Mandatory)
+                </label>
                 <input 
-                  type="text" className="form-control py-2" placeholder="e.g. SQLTEST" required
+                  type="text" className="form-control py-2" 
+                  placeholder="e.g. SQLTEST" 
+                  required
                   value={accessCode} onChange={e => setAccessCode(e.target.value)}
                 />
               </div>

@@ -12,6 +12,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "alasql": "^4.19.0",
     "axios": "^1.18.1",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",

@@ -1,11 +1,12 @@
 import API_BASE from '../config/api.js';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams, Link } from 'react-router-dom';
-import { FaUserGraduate, FaClipboardList, FaDownload } from 'react-icons/fa';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { FaUserGraduate, FaClipboardList, FaDownload, FaArrowLeft } from 'react-icons/fa';
 
 const Submissions = () => {
   const { examId } = useParams();
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,9 +28,13 @@ const Submissions = () => {
 
   return (
     <div className="container mt-4 animated-fade">
+      <button className="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1 mb-3" onClick={() => navigate(-1)}>
+        <FaArrowLeft /> Back
+      </button>
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3 className="fw-bold">Student Submissions</h3>
-        <a href={`${API_BASE}/api/teacher/exams/${examId}/export`} className="btn btn-success d-flex align-items-center gap-2">
+        <a href={`${API_BASE}/api/teacher/exams/${examId}/export?token=${localStorage.getItem('token')}`} className="btn btn-success d-flex align-items-center gap-2">
           <FaDownload /> Export Marks (Excel)
         </a>
       </div>
@@ -43,6 +48,7 @@ const Submissions = () => {
                 <th>Roll Number</th>
                 <th>Section</th>
                 <th>Submission Status</th>
+                <th>Score</th>
                 <th>Submitted Date</th>
                 <th>Grading Details</th>
               </tr>
@@ -63,6 +69,15 @@ const Submissions = () => {
                     }`}>
                       {sub.status === 'Draft' ? 'In Progress' : sub.status}
                     </span>
+                  </td>
+                  <td>
+                    {sub.status === 'Graded' ? (
+                      <span className="fw-bold text-info" style={{ fontSize: '0.9rem' }}>
+                        {sub.score} / {sub.total_possible_marks} Marks
+                      </span>
+                    ) : (
+                      <span className="text-muted small">-</span>
+                    )}
                   </td>
                   <td>
                     {sub.submitted_at ? (() => {
@@ -93,7 +108,7 @@ const Submissions = () => {
               ))}
               {submissions.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-muted">No student submissions found.</td>
+                  <td colSpan="7" className="text-center py-4 text-muted">No student submissions found.</td>
                 </tr>
               )}
             </tbody>

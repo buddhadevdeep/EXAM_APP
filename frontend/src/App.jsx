@@ -28,6 +28,17 @@ import TeacherScan from './pages/TeacherScan';
 import StudentDashboard from './pages/StudentDashboard';
 import TakeExam from './pages/TakeExam';
 import StudentSubmissions from './pages/StudentSubmissions';
+import SqlPlayground from './pages/SqlPlayground';
+
+// SQL Practice Module Pages
+import SqlDatabases from './pages/SqlDatabases';
+import SqlAssignments from './pages/SqlAssignments';
+import SqlGrades from './pages/SqlGrades';
+import SqlGradeSubmission from './pages/SqlGradeSubmission';
+import StudentSqlAssignments from './pages/StudentSqlAssignments';
+import TakeSqlAssignment from './pages/TakeSqlAssignment';
+import StudentSqlSubmissions from './pages/StudentSqlSubmissions';
+import StudentSqlSubmissionDetail from './pages/StudentSqlSubmissionDetail';
 
 // Bootstrap CSS & styling
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -79,7 +90,7 @@ const AppLayout = () => {
     return <Routes><Route path="/login" element={<Login />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>;
   }
 
-  const isExamPage = location.pathname.startsWith('/student/exams/');
+  const isExamPage = location.pathname.startsWith('/student/exams/') || location.pathname.startsWith('/student/sql-assignments/take/');
 
   return (
     <div className="d-flex min-vh-100">
@@ -112,13 +123,26 @@ const AppLayout = () => {
             <Route path="/teacher/students" element={<ProtectedRoute allowedRoles={['Teacher']}><StudentManagement /></ProtectedRoute>} />
             <Route path="/teacher/scan" element={<ProtectedRoute allowedRoles={['Teacher']}><TeacherScan /></ProtectedRoute>} />
 
+            {/* SQL Practice Teacher Routes */}
+            <Route path="/teacher/sql-databases" element={<ProtectedRoute allowedRoles={['Teacher']}><SqlDatabases /></ProtectedRoute>} />
+            <Route path="/teacher/sql-assignments" element={<ProtectedRoute allowedRoles={['Teacher']}><SqlAssignments /></ProtectedRoute>} />
+            <Route path="/teacher/sql-grades" element={<ProtectedRoute allowedRoles={['Teacher']}><SqlGrades /></ProtectedRoute>} />
+            <Route path="/teacher/sql-grades/:submissionId" element={<ProtectedRoute allowedRoles={['Teacher']}><SqlGradeSubmission /></ProtectedRoute>} />
+
             {/* Student Routes */}
             <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['Student']}><StudentDashboard /></ProtectedRoute>} />
             <Route path="/student/exams/:examId" element={<ProtectedRoute allowedRoles={['Student']}><TakeExam /></ProtectedRoute>} />
             <Route path="/student/submissions" element={<ProtectedRoute allowedRoles={['Student']}><StudentSubmissions /></ProtectedRoute>} />
 
+            {/* SQL Practice Student Routes */}
+            <Route path="/student/sql-assignments" element={<ProtectedRoute allowedRoles={['Student']}><StudentSqlAssignments /></ProtectedRoute>} />
+            <Route path="/student/sql-assignments/take/:assignmentId" element={<ProtectedRoute allowedRoles={['Student']}><TakeSqlAssignment /></ProtectedRoute>} />
+            <Route path="/student/sql-submissions" element={<ProtectedRoute allowedRoles={['Student']}><StudentSqlSubmissions /></ProtectedRoute>} />
+            <Route path="/student/sql-submissions/:submissionId" element={<ProtectedRoute allowedRoles={['Student']}><StudentSqlSubmissionDetail /></ProtectedRoute>} />
+
             <Route path="/verify-submission/:submissionId" element={<VerifySubmission />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/practice/sandbox" element={<ProtectedRoute allowedRoles={['Student', 'Teacher']}><SqlPlayground /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

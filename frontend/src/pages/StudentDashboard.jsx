@@ -2,13 +2,15 @@ import API_BASE from '../config/api.js';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaPlay, FaCheckCircle, FaExclamationCircle, FaLock } from 'react-icons/fa';
+import { FaPlay, FaCheckCircle, FaExclamationCircle, FaLock, FaDatabase } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 
 const StudentDashboard = () => {
   const { cachedExams, setCachedExams } = useAuth();
   const exams = cachedExams || [];
+  const [sqlAssignments, setSqlAssignments] = useState([]);
   const [loading, setLoading] = useState(exams.length === 0);
+  const [activeTab, setActiveTab] = useState('exams'); // 'exams' | 'assignments'
   const navigate = useNavigate();
 
   // Custom Modal States
@@ -16,6 +18,39 @@ const StudentDashboard = () => {
   const [selectedExam, setSelectedExam] = useState(null);
   const [accessCode, setAccessCode] = useState('');
   const [accessError, setAccessError] = useState('');
+
+  const proctoredExams = exams.filter(e => e.exam_type !== 'Assignment');
+  const now = new Date();
+  const practiceAssignments = [
+    ...exams.filter(e => e.exam_type === 'Assignment'),
+    ...sqlAssignments.map(a => {
+      const submittedSubs = a.submissions?.filter(s => s.status !== 'Draft') || [];
+      const latestSub = submittedSubs[submittedSubs.length - 1];
+      return {
+        id: a._id,
+        _id: a._id,
+        title: a.title,
+        description: a.description,
+        subject_name: `SQL (${a.database_name})`,
+        exam_type: 'Assignment',
+        isSql: true,
+        total_marks: a.questions.reduce((sum, q) => sum + q.points, 0),
+        duration_minutes: 'Self-Paced',
+        submission_status: a.total_attempts >= a.max_attempts ? 'Submitted' : (a.has_draft ? 'Draft' : 'Not Started'),
+        max_attempts: a.max_attempts,
+        total_attempts: a.total_attempts,
+        start_time: a.start_time,
+        end_time: a.end_time,
+        submission_id: latestSub ? latestSub._id : null
+      };
+    })
+  ].filter(exam => {
+    // Filter out assignments whose deadline has passed
+    if (exam.end_time && new Date(exam.end_time) < now) {
+      return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -28,7 +63,18 @@ const StudentDashboard = () => {
         setLoading(false);
       }
     };
+    const fetchSqlAssignments = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/sql-practice/student/assignments`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setSqlAssignments(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchExams();
+    fetchSqlAssignments();
   }, []);
 
   const enterFS = async () => {
@@ -47,7 +93,11 @@ const StudentDashboard = () => {
   };
 
   const handleStartExam = async (exam) => {
-    if (exam.access_code) {
+    if (exam.isSql) {
+      navigate(`/student/sql-assignments/take/${exam.id}`);
+    } else if (exam.exam_type === 'Assignment') {
+      navigate(`/student/exams/${exam.id}`);
+    } else if (exam.access_code) {
       setSelectedExam(exam);
       setAccessCode('');
       setAccessError('');
@@ -55,6 +105,14 @@ const StudentDashboard = () => {
     } else {
       await enterFS();
       navigate(`/student/exams/${exam.id}`);
+    }
+  };
+
+  const handleViewSubmission = (exam) => {
+    if (exam.isSql) {
+      navigate(`/student/sql-submissions/${exam.submission_id}`);
+    } else {
+      navigate(`/student/exams/${exam.id}?submissionId=${exam.submission_id}`);
     }
   };
 
@@ -75,24 +133,58 @@ const StudentDashboard = () => {
 
   if (loading) return <div className="container mt-4"><div className="skeleton-line" /></div>;
 
+  const activeList = activeTab === 'exams' ? proctoredExams : practiceAssignments;
+
   return (
     <div className="container mt-4 animated-fade">
-      <h3 className="fw-bold mb-4">Active & Available Exams</h3>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+          <h3 className="fw-bold mb-1 mb-md-0 text-gradient text-gradient-info text-uppercase">Student Dashboard</h3>
+          <p className="text-muted small mb-0">Access your proctored exams and homework assignments</p>
+        </div>
+      </div>
+
+      <ul className="nav nav-pills gap-2 mb-4 bg-dark bg-opacity-25 p-2 rounded-3 border border-secondary border-opacity-10 d-inline-flex">
+        <li className="nav-item">
+          <button 
+            type="button"
+            className={`nav-link fw-bold px-4 py-2 border-0 rounded-2 transition-all d-flex align-items-center gap-2 ${activeTab === 'exams' ? 'active bg-primary text-white shadow-sm' : 'bg-transparent text-muted'}`}
+            onClick={() => setActiveTab('exams')}
+          >
+            📝 Proctored Exams <span className={`badge ${activeTab === 'exams' ? 'bg-white text-primary' : 'bg-secondary bg-opacity-25 text-muted'}`}>{proctoredExams.length}</span>
+          </button>
+        </li>
+        <li className="nav-item">
+          <button 
+            type="button"
+            className={`nav-link fw-bold px-4 py-2 border-0 rounded-2 transition-all d-flex align-items-center gap-2 ${activeTab === 'assignments' ? 'active bg-info text-dark shadow-sm' : 'bg-transparent text-muted'}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            📋 Assignments <span className={`badge ${activeTab === 'assignments' ? 'bg-dark text-info' : 'bg-secondary bg-opacity-25 text-muted'}`}>{practiceAssignments.length}</span>
+          </button>
+        </li>
+      </ul>
 
       <div className="row">
-        {exams.map((exam) => (
+        {activeList.map((exam) => (
           <div key={exam.id} className="col-lg-6 col-12 mb-4">
-            <div className="card glass-card p-4 h-100 d-flex flex-column">
+            <div className="card glass-card p-4 h-100 d-flex flex-column border border-secondary border-opacity-15 shadow-sm">
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-2">
                 <span className="badge bg-secondary text-wrap" style={{ maxWidth: '100%' }}>{exam.subject_name}</span>
                 <div className="d-flex gap-1 flex-wrap">
-                  {(!exam.submission_status || exam.submission_status === 'Draft') && (
-                    <span className="badge bg-danger text-wrap">Absent</span>
-                  )}
-                  {exam.access_code && (
-                    <span className="badge bg-danger d-flex align-items-center gap-1 text-wrap">
-                      <FaLock size={10} /> Secure Code Req.
-                    </span>
+                  {exam.exam_type !== 'Assignment' ? (
+                    <>
+                      {(!exam.submission_status || exam.submission_status === 'Draft') && (
+                        <span className="badge bg-danger text-wrap">Absent</span>
+                      )}
+                      {exam.access_code && (
+                        <span className="badge bg-danger d-flex align-items-center gap-1 text-wrap">
+                          <FaLock size={10} /> Secure Code Req.
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="badge bg-info text-dark text-wrap fw-bold">Assignment</span>
                   )}
                 </div>
               </div>
@@ -106,11 +198,11 @@ const StudentDashboard = () => {
                 </div>
                 <div className="col-6">
                   <div className="text-muted small">Duration</div>
-                  <div className="fw-bold">{exam.duration_minutes} Mins</div>
+                  <div className="fw-bold">{exam.duration_minutes === 'Self-Paced' ? 'Self-Paced' : `${exam.duration_minutes} Mins`}</div>
                 </div>
               </div>
 
-              {(exam.start_time || exam.end_time) && (
+              {(exam.start_time || exam.end_time) && exam.exam_type !== 'Assignment' && (
                 <div className="p-2 bg-light rounded text-center small mb-3">
                   <div className="fw-bold text-primary mb-1">Access Timeline Window:</div>
                   <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-1 text-muted">
@@ -123,26 +215,32 @@ const StudentDashboard = () => {
 
               {exam.submission_status === 'Submitted' || exam.submission_status === 'Graded' ? (
                 <button 
-                  onClick={() => navigate(`/student/exams/${exam.id}`)}
-                  className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                  onClick={() => handleViewSubmission(exam)}
+                  className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2 animate-hover"
                 >
                   <FaCheckCircle /> View Submission
                 </button>
               ) : (
                 <button 
                   onClick={() => handleStartExam(exam)} 
-                  className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                  className={exam.exam_type === 'Assignment' ? "btn btn-info w-100 d-flex align-items-center justify-content-center gap-2 animate-hover text-dark fw-bold" : "btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 animate-hover"}
                 >
-                  <FaPlay /> {exam.submission_status === 'Draft' ? 'Resume Exam' : 'Start Exam'}
+                  <FaPlay /> {
+                    exam.exam_type === 'Assignment' 
+                      ? (exam.submission_status === 'Draft' ? 'Resume Assignment' : 'Start Assignment')
+                      : (exam.submission_status === 'Draft' ? 'Resume Exam' : 'Start Exam')
+                  }
                 </button>
               )}
+              
+
             </div>
           </div>
         ))}
-        {exams.length === 0 && (
+        {activeList.length === 0 && (
           <div className="col-12 text-center py-5 text-muted">
             <FaExclamationCircle className="fs-1 mb-2 text-warning" />
-            <p>No exams are currently active. Check back later.</p>
+            <p>{activeTab === 'exams' ? 'No exams' : 'No practice assignments'} are currently active. Check back later.</p>
           </div>
         )}
       </div>
